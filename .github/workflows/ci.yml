@@ -14,8 +14,8 @@ permissions:
   contents: read
 
 jobs:
-  test:
-    name: Test
+  verify:
+    name: Verify
     runs-on: ubuntu-latest
 
     steps:
