@@ -116,3 +116,43 @@ GitHub Actionsでは以下の順番で自動実行されます。
 
 1. Spotlessによるフォーマットチェック
 2. Maven Verify（コンパイル・テスト・パッケージ・Checkstyle）
+
+## Git Hooks
+
+このプロジェクトでは、Git Hooksの管理に **Husky**、コミットメッセージの検証に **Commitlint** を使用しています。
+
+### セットアップ
+
+依存ライブラリをインストールします。
+
+```bash
+npm install
+```
+
+Git Hooksは以下のコマンドで自動的にセットアップされます。
+
+```bash
+npm run prepare
+```
+
+### コミットメッセージ
+
+Conventional Commits のルールに従ってコミットメッセージを記述してください。
+
+例：
+
+```text
+feat: add inspection result API
+fix: resolve login validation bug
+refactor: simplify inspection service
+docs: update README
+test: add user service tests
+chore: configure git hooks
+
+### Hook一覧
+
+| Hook       | 役割                                                 |
+| ---------- | ---------------------------------------------------- |
+| pre-commit | Spotlessによるコードフォーマットチェック             |
+| commit-msg | Conventional Commitsに従ったコミットメッセージを検証 |
+```
