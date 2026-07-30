@@ -6,8 +6,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication
 public class EquipmentInspectionSystemApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(EquipmentInspectionSystemApplication.class, args);
-	}
-
+  public static void main(String[] args) {
+    SpringApplication.run(EquipmentInspectionSystemApplication.class, args);
+  }
 }

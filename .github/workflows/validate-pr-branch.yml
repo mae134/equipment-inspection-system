@@ -1,0 +1,25 @@
+name: Validate PR Branch
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate source branch
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Ensure pull request comes from dev
+        run: |
+          echo "Base branch: ${{ github.base_ref }}"
+          echo "Head branch: ${{ github.head_ref }}"
+
+          if [ "${{ github.head_ref }}" != "dev" ]; then
+            echo "::error::Pull requests to 'main' must come from 'dev'."
+            exit 1
+          fi
