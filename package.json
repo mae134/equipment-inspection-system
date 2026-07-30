@@ -1,0 +1,30 @@
+{
+  "name": "equipment-inspection-system",
+  "version": "1.0.0",
+  "description": "このリポジトリでは、以下のGitフローを採用しています。",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "prepare": "husky",
+    "commitlint": "commitlint --edit"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mae134/equipment-inspection-system.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/mae134/equipment-inspection-system/issues"
+  },
+  "homepage": "https://github.com/mae134/equipment-inspection-system#readme",
+  "devDependencies": {
+    "@commitlint/cli": "^21.2.1",
+    "@commitlint/config-conventional": "^21.2.0",
+    "husky": "^9.1.7"
+  }
+}
