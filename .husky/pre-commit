@@ -1,3 +1,7 @@
 #!/usr/bin/env sh
 
-./mvnw spotless:check
+./mvnw spotless:apply || exit 1
+
+git add -A
+
+./mvnw spotless:check || exit 1
