@@ -2,6 +2,8 @@ package com.mae134.equipmentinspection.equipment;
 
 import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -18,5 +20,10 @@ public class EquipmentController {
   @GetMapping
   public List<Equipment> findAll() {
     return equipmentService.findAll();
+  }
+
+  @PostMapping
+  public Equipment save(@RequestBody Equipment equipment) {
+    return equipmentService.save(equipment);
   }
 }

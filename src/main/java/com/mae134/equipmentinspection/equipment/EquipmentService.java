@@ -15,4 +15,8 @@ public class EquipmentService {
   public List<Equipment> findAll() {
     return equipmentRepository.findAll();
   }
+
+  public Equipment save(Equipment equipment) {
+    return equipmentRepository.save(equipment);
+  }
 }
