@@ -1,5 +1,6 @@
 package com.mae134.equipmentinspection.equipment;
 
+import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -29,7 +30,7 @@ public class EquipmentController {
   }
 
   @PostMapping
-  public EquipmentResponse save(@RequestBody EquipmentRequest request) {
+  public EquipmentResponse save(@Valid @RequestBody EquipmentRequest request) {
     return equipmentService.save(request);
   }
 
@@ -42,7 +43,8 @@ public class EquipmentController {
   }
 
   @PutMapping("/{id}")
-  public EquipmentResponse update(@PathVariable Long id, @RequestBody EquipmentRequest request) {
+  public EquipmentResponse update(
+      @PathVariable Long id, @Valid @RequestBody EquipmentRequest request) {
     return equipmentService.update(id, request);
   }
 
