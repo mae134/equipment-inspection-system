@@ -29,4 +29,15 @@ public class GlobalExceptionHandler {
 
     return ResponseEntity.badRequest().body(response);
   }
+
+  @ExceptionHandler(DuplicateResourceException.class)
+  public ResponseEntity<Map<String, Object>> handleDuplicateResourceException(
+      DuplicateResourceException exception) {
+
+    Map<String, Object> response = new LinkedHashMap<>();
+    response.put("status", HttpStatus.CONFLICT.value());
+    response.put("message", exception.getMessage());
+
+    return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+  }
 }

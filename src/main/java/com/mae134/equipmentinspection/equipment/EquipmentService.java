@@ -1,5 +1,6 @@
 package com.mae134.equipmentinspection.equipment;
 
+import com.mae134.equipmentinspection.exception.DuplicateResourceException;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.http.HttpStatus;
@@ -20,6 +21,11 @@ public class EquipmentService {
   }
 
   public EquipmentResponse save(EquipmentRequest request) {
+
+    if (equipmentRepository.existsByEquipmentCode(request.equipmentCode())) {
+      throw new DuplicateResourceException("設備コードは既に登録されています: " + request.equipmentCode());
+    }
+
     Equipment equipment = new Equipment();
 
     equipment.setEquipmentCode(request.equipmentCode());
@@ -42,7 +48,18 @@ public class EquipmentService {
   }
 
   public EquipmentResponse update(Long id, EquipmentRequest request) {
-    Equipment equipment = equipmentRepository.findById(id).orElseThrow();
+    Equipment equipment =
+        equipmentRepository
+            .findById(id)
+            .orElseThrow(
+                () ->
+                    new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Equipment not found: " + id));
+
+    if (equipmentRepository.existsByEquipmentCodeAndIdNot(request.equipmentCode(), id)) {
+
+      throw new DuplicateResourceException("設備コードは既に登録されています: " + request.equipmentCode());
+    }
 
     equipment.setEquipmentCode(request.equipmentCode());
     equipment.setName(request.name());
