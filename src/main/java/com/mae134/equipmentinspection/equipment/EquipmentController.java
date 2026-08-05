@@ -24,17 +24,17 @@ public class EquipmentController {
   }
 
   @GetMapping
-  public List<Equipment> findAll() {
+  public List<EquipmentResponse> findAll() {
     return equipmentService.findAll();
   }
 
   @PostMapping
-  public Equipment save(@RequestBody Equipment equipment) {
-    return equipmentService.save(equipment);
+  public EquipmentResponse save(@RequestBody EquipmentRequest request) {
+    return equipmentService.save(request);
   }
 
   @GetMapping("/{id}")
-  public Equipment findById(@PathVariable Long id) {
+  public EquipmentResponse findById(@PathVariable Long id) {
     return equipmentService
         .findById(id)
         .orElseThrow(
@@ -42,9 +42,8 @@ public class EquipmentController {
   }
 
   @PutMapping("/{id}")
-  public Equipment update(@PathVariable Long id, @RequestBody Equipment equipment) {
-
-    return equipmentService.update(id, equipment);
+  public EquipmentResponse update(@PathVariable Long id, @RequestBody EquipmentRequest request) {
+    return equipmentService.update(id, request);
   }
 
   @DeleteMapping("/{id}")

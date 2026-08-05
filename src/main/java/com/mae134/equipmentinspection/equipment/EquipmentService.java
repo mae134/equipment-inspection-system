@@ -15,32 +15,48 @@ public class EquipmentService {
     this.equipmentRepository = equipmentRepository;
   }
 
-  public List<Equipment> findAll() {
-    return equipmentRepository.findAll();
+  public List<EquipmentResponse> findAll() {
+    return equipmentRepository.findAll().stream().map(this::toResponse).toList();
   }
 
-  public Equipment save(Equipment equipment) {
-    return equipmentRepository.save(equipment);
+  public EquipmentResponse save(EquipmentRequest request) {
+    Equipment equipment = new Equipment();
+
+    equipment.setEquipmentCode(request.equipmentCode());
+    equipment.setName(request.name());
+    equipment.setManufacturer(request.manufacturer());
+    equipment.setModel(request.model());
+    equipment.setLocation(request.location());
+    equipment.setInstalledDate(request.installedDate());
+    equipment.setInspectionCycleDays(request.inspectionCycleDays());
+    equipment.setDescription(request.description());
+    equipment.setActive(request.active());
+
+    Equipment savedEquipment = equipmentRepository.save(equipment);
+
+    return toResponse(savedEquipment);
   }
 
-  public Optional<Equipment> findById(Long id) {
-    return equipmentRepository.findById(id);
+  public Optional<EquipmentResponse> findById(Long id) {
+    return equipmentRepository.findById(id).map(this::toResponse);
   }
 
-  public Equipment update(Long id, Equipment request) {
-
+  public EquipmentResponse update(Long id, EquipmentRequest request) {
     Equipment equipment = equipmentRepository.findById(id).orElseThrow();
 
-    equipment.setEquipmentCode(request.getEquipmentCode());
-    equipment.setName(request.getName());
-    equipment.setManufacturer(request.getManufacturer());
-    equipment.setModel(request.getModel());
-    equipment.setLocation(request.getLocation());
-    equipment.setInstalledDate(request.getInstalledDate());
-    equipment.setInspectionCycleDays(request.getInspectionCycleDays());
-    equipment.setDescription(request.getDescription());
+    equipment.setEquipmentCode(request.equipmentCode());
+    equipment.setName(request.name());
+    equipment.setManufacturer(request.manufacturer());
+    equipment.setModel(request.model());
+    equipment.setLocation(request.location());
+    equipment.setInstalledDate(request.installedDate());
+    equipment.setInspectionCycleDays(request.inspectionCycleDays());
+    equipment.setDescription(request.description());
+    equipment.setActive(request.active());
 
-    return equipmentRepository.save(equipment);
+    Equipment updatedEquipment = equipmentRepository.save(equipment);
+
+    return toResponse(updatedEquipment);
   }
 
   public void delete(Long id) {
@@ -53,5 +69,21 @@ public class EquipmentService {
                         HttpStatus.NOT_FOUND, "Equipment not found: " + id));
 
     equipmentRepository.delete(equipment);
+  }
+
+  private EquipmentResponse toResponse(Equipment equipment) {
+    return new EquipmentResponse(
+        equipment.getId(),
+        equipment.getEquipmentCode(),
+        equipment.getName(),
+        equipment.getManufacturer(),
+        equipment.getModel(),
+        equipment.getLocation(),
+        equipment.getInstalledDate(),
+        equipment.getInspectionCycleDays(),
+        equipment.getDescription(),
+        equipment.getActive(),
+        equipment.getCreatedAt(),
+        equipment.getUpdatedAt());
   }
 }

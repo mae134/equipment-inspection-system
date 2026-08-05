@@ -50,6 +50,9 @@ public class Equipment {
   @Column(length = 500)
   private String description;
 
+  @Column(nullable = false)
+  private Boolean active;
+
   @Column(name = "created_at", nullable = false)
   private LocalDateTime createdAt;
 
@@ -62,6 +65,11 @@ public class Equipment {
     LocalDateTime now = LocalDateTime.now();
     createdAt = now;
     updatedAt = now;
+
+    // 有効状態の初期値
+    if (active == null) {
+      active = true;
+    }
   }
 
   @PreUpdate
