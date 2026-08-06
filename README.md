@@ -70,6 +70,26 @@ Pull Requestのマージ後は、以下の手順でローカル環境を整理�
 - 不要になったリモート追跡ブランチの削除
 - マージ済みローカルブランチの削除
 
+## 開発
+
+### アプリケーション起動
+
+```bash
+./mvnw spring-boot:run
+```
+
+### テスト実行
+
+```bash
+./mvnw test
+```
+
+### ビルド・品質チェック
+
+```bash
+./mvnw verify
+```
+
 ## コード品質
 
 このプロジェクトでは、コード品質を維持するために以下のツールを使用しています。
@@ -79,6 +99,26 @@ Pull Requestのマージ後は、以下の手順でローカル環境を整理�
 | Spotless       | Javaコードのフォーマットを統一                 |
 | Checkstyle     | コーディングルール・静的解析                   |
 | GitHub Actions | Push・Pull Request時に自動で品質チェックを実行 |
+
+## API
+
+現在実装済みのAPIです。
+
+| メソッド | エンドポイント        | 説明               |
+| -------- | --------------------- | ------------------ |
+| POST     | `/api/equipment`      | 設備を登録する     |
+| GET      | `/api/equipment`      | 設備一覧を取得する |
+| GET      | `/api/equipment/{id}` | 設備詳細を取得する |
+| PUT      | `/api/equipment/{id}` | 設備情報を更新する |
+| DELETE   | `/api/equipment/{id}` | 設備を削除する     |
+
+### エラーレスポンス
+
+| HTTPステータス  | 内容                     |
+| --------------- | ------------------------ |
+| 400 Bad Request | 入力バリデーションエラー |
+| 404 Not Found   | 指定した設備が存在しない |
+| 409 Conflict    | 設備コードが重複している |
 
 ### コードフォーマット
 
@@ -148,11 +188,12 @@ refactor: simplify inspection service
 docs: update README
 test: add user service tests
 chore: configure git hooks
+```
 
 ### Hook一覧
 
-| Hook       | 役割                                                 |
-| ---------- | ---------------------------------------------------- |
-| pre-commit | Spotlessによるコードフォーマットチェック             |
-| commit-msg | Conventional Commitsに従ったコミットメッセージを検証 |
-```
+| Hook       | 役割                                                               |
+| ---------- | ------------------------------------------------------------------ |
+| pre-commit | Spotlessによるコードフォーマットチェック                           |
+| commit-msg | Conventional Commitsに従ったコミットメッセージを検証               |
+| pre-push   | `./mvnw verify` を実行し、品質チェックを通過した場合のみPushを許可 |

@@ -1,0 +1,54 @@
+<mxfile host="app.diagrams.net" agent="ChatGPT">
+  <diagram name="ER図" id="er">
+    <mxGraphModel dx="1414" dy="777" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" parent="1" style="text;html=1;fontSize=24;fontStyle=1;align=left;" value="設備点検管理システム&lt;br&gt;&lt;b&gt;ER図&lt;/b&gt;" vertex="1">
+          <mxGeometry height="60" width="350" x="40" y="30" as="geometry" />
+        </mxCell>
+        <mxCell id="user" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#666666;fontStyle=1;fontSize=15;" value="User" vertex="1">
+          <mxGeometry height="90" width="250" x="120" y="170" as="geometry" />
+        </mxCell>
+        <mxCell id="equipment" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#666666;fontStyle=1;fontSize=15;" value="Equipment" vertex="1">
+          <mxGeometry height="90" width="250" x="520" y="170" as="geometry" />
+        </mxCell>
+        <mxCell id="inspection" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#666666;fontStyle=1;fontSize=15;" value="Inspection" vertex="1">
+          <mxGeometry height="90" width="250" x="920" y="170" as="geometry" />
+        </mxCell>
+        <mxCell id="item" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#666666;fontStyle=1;fontSize=15;" value="EquipmentInspectionItem" vertex="1">
+          <mxGeometry height="90" width="250" x="320" y="430" as="geometry" />
+        </mxCell>
+        <mxCell id="result" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#666666;fontStyle=1;fontSize=15;" value="InspectionResult" vertex="1">
+          <mxGeometry height="90" width="250" x="820" y="430" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" edge="1" parent="1" source="user" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=none;startArrow=none;fontSize=13;labelBackgroundColor=#ffffff;entryX=0.472;entryY=-0.022;entryDx=0;entryDy=0;entryPerimeter=0;exitX=1.008;exitY=0.367;exitDx=0;exitDy=0;exitPerimeter=0;" target="inspection" value="1 : N">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="380" y="203" />
+              <mxPoint x="380" y="140" />
+              <mxPoint x="1038" y="140" />
+            </Array>
+            <mxPoint x="380" y="200" as="sourcePoint" />
+            <mxPoint x="1040" y="160" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e2" edge="1" parent="1" source="equipment" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=none;startArrow=none;fontSize=13;labelBackgroundColor=#ffffff;" target="inspection" value="1 : N">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" edge="1" parent="1" source="equipment" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=none;startArrow=none;fontSize=13;labelBackgroundColor=#ffffff;" target="item" value="1 : N">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" edge="1" parent="1" source="inspection" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=none;startArrow=none;fontSize=13;labelBackgroundColor=#ffffff;" target="result" value="1 : N">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" edge="1" parent="1" source="item" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=none;startArrow=none;fontSize=13;labelBackgroundColor=#ffffff;" target="result" value="1 : N">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="note" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=13;" value="&lt;b&gt;リレーション&lt;/b&gt;&lt;br/&gt;User → Inspection&lt;br/&gt;Equipment → Inspection&lt;br/&gt;Equipment → EquipmentInspectionItem&lt;br/&gt;Inspection → InspectionResult&lt;br/&gt;EquipmentInspectionItem → InspectionResult" vertex="1">
+          <mxGeometry height="170" width="520" x="40" y="760" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
