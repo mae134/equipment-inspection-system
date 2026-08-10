@@ -2,10 +2,10 @@ package com.mae134.equipmentinspection.inspection;
 
 import com.mae134.equipmentinspection.equipment.Equipment;
 import com.mae134.equipmentinspection.equipment.EquipmentRepository;
+import com.mae134.equipmentinspection.exception.ResourceNotFoundException;
 import com.mae134.equipmentinspection.user.User;
 import com.mae134.equipmentinspection.user.UserRepository;
 import java.util.List;
-import java.util.Optional;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -38,9 +38,18 @@ public class InspectionService {
 
   public InspectionResponse save(InspectionRequest request) {
 
-    Equipment equipment = equipmentRepository.findById(request.equipmentId()).orElseThrow();
+    Equipment equipment =
+        equipmentRepository
+            .findById(request.equipmentId())
+            .orElseThrow(
+                () ->
+                    new ResourceNotFoundException("Equipment not found: " + request.equipmentId()));
 
-    User user = userRepository.findById(request.userId()).orElseThrow();
+    User user =
+        userRepository
+            .findById(request.userId())
+            .orElseThrow(
+                () -> new ResourceNotFoundException("User not found: " + request.userId()));
 
     Inspection inspection = new Inspection();
 
@@ -58,17 +67,34 @@ public class InspectionService {
     return inspectionRepository.findAll().stream().map(this::toResponse).toList();
   }
 
-  public Optional<InspectionResponse> findById(Long id) {
-    return inspectionRepository.findById(id).map(this::toResponse);
+  public InspectionResponse findById(Long id) {
+    Inspection inspection =
+        inspectionRepository
+            .findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Inspection not found: " + id));
+
+    return toResponse(inspection);
   }
 
   public InspectionResponse update(Long id, InspectionRequest request) {
 
-    Inspection inspection = inspectionRepository.findById(id).orElseThrow();
+    Inspection inspection =
+        inspectionRepository
+            .findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Inspection not found: " + id));
 
-    Equipment equipment = equipmentRepository.findById(request.equipmentId()).orElseThrow();
+    Equipment equipment =
+        equipmentRepository
+            .findById(request.equipmentId())
+            .orElseThrow(
+                () ->
+                    new ResourceNotFoundException("Equipment not found: " + request.equipmentId()));
 
-    User user = userRepository.findById(request.userId()).orElseThrow();
+    User user =
+        userRepository
+            .findById(request.userId())
+            .orElseThrow(
+                () -> new ResourceNotFoundException("User not found: " + request.userId()));
 
     inspection.setEquipment(equipment);
     inspection.setUser(user);
@@ -81,7 +107,10 @@ public class InspectionService {
   }
 
   public void delete(Long id) {
-    Inspection inspection = inspectionRepository.findById(id).orElseThrow();
+    Inspection inspection =
+        inspectionRepository
+            .findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Inspection not found: " + id));
 
     inspectionRepository.delete(inspection);
   }

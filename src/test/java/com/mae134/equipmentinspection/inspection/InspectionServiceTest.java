@@ -10,10 +10,10 @@ import static org.mockito.Mockito.when;
 
 import com.mae134.equipmentinspection.equipment.Equipment;
 import com.mae134.equipmentinspection.equipment.EquipmentRepository;
+import com.mae134.equipmentinspection.exception.ResourceNotFoundException;
 import com.mae134.equipmentinspection.user.User;
 import com.mae134.equipmentinspection.user.UserRepository;
 import java.time.LocalDateTime;
-import java.util.NoSuchElementException;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -83,7 +83,7 @@ class InspectionServiceTest {
 
     when(equipmentRepository.findById(999L)).thenReturn(Optional.empty());
 
-    assertThrows(NoSuchElementException.class, () -> inspectionService.save(request));
+    assertThrows(ResourceNotFoundException.class, () -> inspectionService.save(request));
 
     verify(equipmentRepository).findById(999L);
     verify(userRepository, never()).findById(any());
@@ -101,7 +101,7 @@ class InspectionServiceTest {
 
     when(userRepository.findById(999L)).thenReturn(Optional.empty());
 
-    assertThrows(NoSuchElementException.class, () -> inspectionService.save(request));
+    assertThrows(ResourceNotFoundException.class, () -> inspectionService.save(request));
 
     verify(equipmentRepository).findById(1L);
     verify(userRepository).findById(999L);

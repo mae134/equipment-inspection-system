@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/api/inspections")
@@ -31,10 +30,7 @@ public class InspectionController {
 
   @GetMapping("/{id}")
   public InspectionResponse findById(@PathVariable Long id) {
-    return inspectionService
-        .findById(id)
-        .orElseThrow(
-            () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Inspection not found: " + id));
+    return inspectionService.findById(id);
   }
 
   @PostMapping
