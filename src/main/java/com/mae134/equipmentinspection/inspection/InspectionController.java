@@ -1,5 +1,6 @@
 package com.mae134.equipmentinspection.inspection;
 
+import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -37,12 +38,13 @@ public class InspectionController {
   }
 
   @PostMapping
-  public InspectionResponse save(@RequestBody InspectionRequest request) {
+  public InspectionResponse save(@Valid @RequestBody InspectionRequest request) {
     return inspectionService.save(request);
   }
 
   @PutMapping("/{id}")
-  public InspectionResponse update(@PathVariable Long id, @RequestBody InspectionRequest request) {
+  public InspectionResponse update(
+      @PathVariable Long id, @Valid @RequestBody InspectionRequest request) {
     return inspectionService.update(id, request);
   }
 
