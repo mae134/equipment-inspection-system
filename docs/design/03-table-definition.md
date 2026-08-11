@@ -108,16 +108,21 @@
 
 ### 5.2 カラム定義
 
-| No. | 論理名     | カラム名        | データ型       | PK  | FK  | NULL | UNIQUE | デフォルト | 説明                             |
-| --: | ---------- | --------------- | -------------- | :-: | :-: | :--: | :----: | ---------- | -------------------------------- |
-|   1 | 点検項目ID | `id`            | `BIGINT`       |  ○  |     | 不可 |   ○    | 自動採番   | 点検項目を識別するID             |
-|   2 | 設備ID     | `equipment_id`  | `BIGINT`       |     |  ○  | 不可 |        |            | 対象設備のID                     |
-|   3 | 点検項目名 | `name`          | `VARCHAR(100)` |     |     | 不可 |        |            | 例：異音確認、油漏れ確認         |
-|   4 | 説明       | `description`   | `VARCHAR(500)` |     |     |  可  |        |            | 点検方法や判断基準などの補足     |
-|   5 | 表示順     | `display_order` | `INT`          |     |     | 不可 |        |            | 点検画面に表示する順序           |
-|   6 | 有効状態   | `active`        | `BOOLEAN`      |     |     | 不可 |        | `TRUE`     | 新規点検で使用可能な項目かを表す |
-|   7 | 作成日時   | `created_at`    | `TIMESTAMP`    |     |     | 不可 |        |            | レコード作成日時                 |
-|   8 | 更新日時   | `updated_at`    | `TIMESTAMP`    |     |     | 不可 |        |            | レコード更新日時                 |
+| No. | 論理名       | カラム名               | データ型        | PK  | FK  | NULL | UNIQUE | デフォルト | 説明                                 |
+| --: | ------------ | ---------------------- | --------------- | :-: | :-: | :--: | :----: | ---------- | ------------------------------------ |
+|   1 | 点検項目ID   | `id`                   | `BIGINT`        |  ○  |     | 不可 |   ○    | 自動採番   | 点検項目を識別するID                 |
+|   2 | 設備ID       | `equipment_id`         | `BIGINT`        |     |  ○  | 不可 |        |            | 対象設備のID                         |
+|   3 | 点検項目名   | `name`                 | `VARCHAR(100)`  |     |     | 不可 |        |            | 例：異音確認、油漏れ確認             |
+|   4 | 点検項目種別 | `type`                 | `VARCHAR(20)`   |     |     | 不可 |        |            | `NUMERIC` または `BOOLEAN`           |
+|   5 | 単位         | `unit`                 | `VARCHAR(20)`   |     |     |  可  |        |            | 数値型で使用する単位。例：`℃`、`MPa` |
+|   6 | 正常下限値   | `min_value`            | `DECIMAL(12,4)` |     |     |  可  |        |            | 数値型における正常範囲の下限値       |
+|   7 | 正常上限値   | `max_value`            | `DECIMAL(12,4)` |     |     |  可  |        |            | 数値型における正常範囲の上限値       |
+|   8 | 正常真偽値   | `normal_boolean_value` | `BOOLEAN`       |     |     |  可  |        |            | `BOOLEAN`型で正常とみなす値          |
+|   9 | 説明         | `description`          | `VARCHAR(500)`  |     |     |  可  |        |            | 点検方法や判断基準などの補足         |
+|  10 | 表示順       | `display_order`        | `INT`           |     |     | 不可 |        |            | 点検画面に表示する順序               |
+|  11 | 有効状態     | `active`               | `BOOLEAN`       |     |     | 不可 |        | `TRUE`     | 新規点検で使用可能な項目かを表す     |
+|  12 | 作成日時     | `created_at`           | `TIMESTAMP`     |     |     | 不可 |        |            | レコード作成日時                     |
+|  13 | 更新日時     | `updated_at`           | `TIMESTAMP`     |     |     | 不可 |        |            | レコード更新日時                     |
 
 ### 5.3 制約
 
@@ -126,6 +131,16 @@
 | `pk_equipment_inspection_item` | PRIMARY KEY | `id`                   | 点検項目IDを主キーとする                 |
 | `fk_item_equipment`            | FOREIGN KEY | `equipment_id`         | `equipment.id` を参照する                |
 | `uk_item_equipment_name`       | UNIQUE      | `equipment_id`, `name` | 同一設備への同名項目の重複登録を禁止する |
+
+### 5.4 値の利用ルール
+
+- `type` はJava側では Enum として扱い、DBには文字列として保存する。
+- `type = NUMERIC` の場合、必要に応じて `unit`、`min_value`、`max_value` を使用し、`normal_boolean_value` は `NULL` とする。
+- `type = BOOLEAN` の場合、`normal_boolean_value` を使用し、`unit`、`min_value`、`max_value` は `NULL` とする。
+- `normal_boolean_value` は、`BOOLEAN`型の点検項目で正常とみなす真偽値を表す。
+- `min_value` と `max_value` の両方が設定されている場合、`min_value <= max_value` とする。
+- 数値型の異常判定では、設定されている正常範囲と `inspection_result.numeric_value` を比較して `result` を決定する。
+- 真偽型の異常判定では、`inspection_result.boolean_value` と `normal_boolean_value` が一致する場合は `OK`、一致しない場合は `NG` とする。
 
 ---
 
@@ -173,15 +188,17 @@
 
 ### 7.2 カラム定義
 
-| No. | 論理名     | カラム名             | データ型       | PK  | FK  | NULL | UNIQUE | デフォルト | 説明                         |
-| --: | ---------- | -------------------- | -------------- | :-: | :-: | :--: | :----: | ---------- | ---------------------------- |
-|   1 | 点検結果ID | `id`                 | `BIGINT`       |  ○  |     | 不可 |   ○    | 自動採番   | 点検結果を識別するID         |
-|   2 | 点検ID     | `inspection_id`      | `BIGINT`       |     |  ○  | 不可 |        |            | 対象となる点検のID           |
-|   3 | 点検項目ID | `inspection_item_id` | `BIGINT`       |     |  ○  | 不可 |        |            | 対象となる設備点検項目のID   |
-|   4 | 点検結果   | `result`             | `VARCHAR(20)`  |     |     | 不可 |        |            | `OK`、`NG`、`NOT_APPLICABLE` |
-|   5 | 備考       | `comment`            | `VARCHAR(500)` |     |     |  可  |        |            | 点検項目ごとの補足情報       |
-|   6 | 作成日時   | `created_at`         | `TIMESTAMP`    |     |     | 不可 |        |            | レコード作成日時             |
-|   7 | 更新日時   | `updated_at`         | `TIMESTAMP`    |     |     | 不可 |        |            | レコード更新日時             |
+| No. | 論理名     | カラム名             | データ型        | PK  | FK  | NULL | UNIQUE | デフォルト | 説明                                |
+| --: | ---------- | -------------------- | --------------- | :-: | :-: | :--: | :----: | ---------- | ----------------------------------- |
+|   1 | 点検結果ID | `id`                 | `BIGINT`        |  ○  |     | 不可 |   ○    | 自動採番   | 点検結果を識別するID                |
+|   2 | 点検ID     | `inspection_id`      | `BIGINT`        |     |  ○  | 不可 |        |            | 対象となる点検のID                  |
+|   3 | 点検項目ID | `inspection_item_id` | `BIGINT`        |     |  ○  | 不可 |        |            | 対象となる設備点検項目のID          |
+|   4 | 数値結果   | `numeric_value`      | `DECIMAL(12,4)` |     |     |  可  |        |            | `NUMERIC`型の点検項目で測定した値   |
+|   5 | 真偽結果   | `boolean_value`      | `BOOLEAN`       |     |     |  可  |        |            | `BOOLEAN`型の点検項目で入力した結果 |
+|   6 | 判定結果   | `result`             | `VARCHAR(20)`   |     |     | 不可 |        |            | `OK`、`NG`、`NOT_APPLICABLE`        |
+|   7 | 備考       | `comment`            | `VARCHAR(500)`  |     |     |  可  |        |            | 点検項目ごとの補足情報              |
+|   8 | 作成日時   | `created_at`         | `TIMESTAMP`     |     |     | 不可 |        |            | レコード作成日時                    |
+|   9 | 更新日時   | `updated_at`         | `TIMESTAMP`     |     |     | 不可 |        |            | レコード更新日時                    |
 
 ### 7.3 制約
 
@@ -191,6 +208,15 @@
 | `fk_result_inspection`      | FOREIGN KEY | `inspection_id`                       | `inspection.id` を参照する                               |
 | `fk_result_item`            | FOREIGN KEY | `inspection_item_id`                  | `equipment_inspection_item.id` を参照する                |
 | `uk_result_inspection_item` | UNIQUE      | `inspection_id`, `inspection_item_id` | 同一点検に同じ点検項目の結果を複数登録できないようにする |
+
+### 7.4 値の利用ルール
+
+- 点検項目の種別が `NUMERIC` の場合、`numeric_value` を使用し、`boolean_value` は `NULL` とする。
+- 点検項目の種別が `BOOLEAN` の場合、`boolean_value` を使用し、`numeric_value` は `NULL` とする。
+- `result` は異常判定結果を保持する。
+- Java側では `result` を Enum として扱い、DBには文字列として保存する。
+- `NOT_APPLICABLE` の場合は、`numeric_value` および `boolean_value` を `NULL` とする。
+- `inspection_result.inspection_item_id` が参照する点検項目は、対象となる `inspection.equipment_id` と同一設備に属する点検項目でなければならない。
 
 ---
 
@@ -222,6 +248,13 @@
 | `OK`             | 問題なし             |
 | `NG`             | 異常あり             |
 | `NOT_APPLICABLE` | 今回の点検では対象外 |
+
+### 9.3 equipment_inspection_item.type
+
+| 値        | 説明                                                 |
+| --------- | ---------------------------------------------------- |
+| `NUMERIC` | 数値を入力し、必要に応じて閾値で正常・異常を判定する |
+| `BOOLEAN` | 真偽値を入力して正常・異常を判定する                 |
 
 ---
 
