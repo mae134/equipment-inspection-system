@@ -118,6 +118,7 @@ public class EquipmentInspectionItemService {
 
   private void validateRequest(EquipmentInspectionItemRequest request) {
 
+    // 閾値のバリデーション
     if (request.type() == InspectionItemType.NUMERIC) {
       if (request.normalBooleanValue() != null) {
         throw new IllegalArgumentException("NUMERIC type must not have normalBooleanValue");
@@ -131,6 +132,7 @@ public class EquipmentInspectionItemService {
       }
     }
 
+    // BOOLEAN型のバリデーション
     if (request.type() == InspectionItemType.BOOLEAN) {
       if (request.normalBooleanValue() == null) {
         throw new IllegalArgumentException("BOOLEAN type requires normalBooleanValue");
