@@ -216,6 +216,7 @@
 - `result` は異常判定結果を保持する。
 - Java側では `result` を Enum として扱い、DBには文字列として保存する。
 - `NOT_APPLICABLE` の場合は、`numeric_value` および `boolean_value` を `NULL` とする。
+- `NOT_APPLICABLE` は、設備停止中などの理由により、その回の点検では対象項目を判定できない、または判定対象としない場合に使用する。理由がある場合は `comment` に補足を記録する。
 - `inspection_result.inspection_item_id` が参照する点検項目は、対象となる `inspection.equipment_id` と同一設備に属する点検項目でなければならない。
 
 ---
