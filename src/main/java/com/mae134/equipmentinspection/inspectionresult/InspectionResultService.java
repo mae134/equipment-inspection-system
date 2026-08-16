@@ -6,6 +6,7 @@ import com.mae134.equipmentinspection.inspection.InspectionRepository;
 import com.mae134.equipmentinspection.inspectionitem.EquipmentInspectionItem;
 import com.mae134.equipmentinspection.inspectionitem.EquipmentInspectionItemRepository;
 import com.mae134.equipmentinspection.inspectionitem.InspectionItemType;
+import java.util.List;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -68,7 +69,48 @@ public class InspectionResultService {
           "Inspection result already exists for this inspection item");
     }
 
-    InspectionResultStatus result;
+    InspectionResultStatus result = determineResult(request, inspectionItem);
+
+    InspectionResult inspectionResult = new InspectionResult();
+
+    inspectionResult.setInspection(inspection);
+    inspectionResult.setInspectionItem(inspectionItem);
+    inspectionResult.setNumericValue(request.numericValue());
+    inspectionResult.setBooleanValue(request.booleanValue());
+    inspectionResult.setResult(result);
+    inspectionResult.setComment(request.comment());
+
+    InspectionResult savedInspectionResult = inspectionResultRepository.save(inspectionResult);
+
+    return toResponse(savedInspectionResult);
+  }
+
+  public List<InspectionResultResponse> findAll() {
+    return inspectionResultRepository.findAll().stream().map(this::toResponse).toList();
+  }
+
+  public InspectionResultResponse findById(Long id) {
+    InspectionResult inspectionResult =
+        inspectionResultRepository
+            .findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Inspection result not found: " + id));
+
+    return toResponse(inspectionResult);
+  }
+
+  public List<InspectionResultResponse> findByInspectionId(Long inspectionId) {
+
+    if (!inspectionRepository.existsById(inspectionId)) {
+      throw new ResourceNotFoundException("Inspection not found: " + inspectionId);
+    }
+
+    return inspectionResultRepository.findByInspectionId(inspectionId).stream()
+        .map(this::toResponse)
+        .toList();
+  }
+
+  private InspectionResultStatus determineResult(
+      InspectionResultRequest request, EquipmentInspectionItem inspectionItem) {
 
     if (request.notApplicable()) {
 
@@ -77,9 +119,10 @@ public class InspectionResultService {
             "NOT_APPLICABLE must not have numericValue or booleanValue");
       }
 
-      result = InspectionResultStatus.NOT_APPLICABLE;
+      return InspectionResultStatus.NOT_APPLICABLE;
+    }
 
-    } else if (inspectionItem.getType() == InspectionItemType.NUMERIC) {
+    if (inspectionItem.getType() == InspectionItemType.NUMERIC) {
 
       if (request.numericValue() == null) {
         throw new IllegalArgumentException("NUMERIC type requires numericValue");
@@ -97,10 +140,25 @@ public class InspectionResultService {
           inspectionItem.getMaxValue() != null
               && request.numericValue().compareTo(inspectionItem.getMaxValue()) > 0;
 
-      result = belowMin || aboveMax ? InspectionResultStatus.NG : InspectionResultStatus.OK;
+      return belowMin || aboveMax ? InspectionResultStatus.NG : InspectionResultStatus.OK;
     }
 
-    // このあと入力値の検証・判定・保存を追加する
-    return null;
+    if (inspectionItem.getType() == InspectionItemType.BOOLEAN) {
+
+      if (request.booleanValue() == null) {
+        throw new IllegalArgumentException("BOOLEAN type requires booleanValue");
+      }
+
+      if (request.numericValue() != null) {
+        throw new IllegalArgumentException("BOOLEAN type must not have numericValue");
+      }
+
+      return request.booleanValue().equals(inspectionItem.getNormalBooleanValue())
+          ? InspectionResultStatus.OK
+          : InspectionResultStatus.NG;
+    }
+
+    throw new IllegalArgumentException(
+        "Unsupported inspection item type: " + inspectionItem.getType());
   }
 }
