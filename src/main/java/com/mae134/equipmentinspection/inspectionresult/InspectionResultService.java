@@ -161,4 +161,54 @@ public class InspectionResultService {
     throw new IllegalArgumentException(
         "Unsupported inspection item type: " + inspectionItem.getType());
   }
+
+  public InspectionResultResponse update(Long id, InspectionResultRequest request) {
+
+    InspectionResult inspectionResult =
+        inspectionResultRepository
+            .findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Inspection result not found: " + id));
+
+    Inspection inspection =
+        inspectionRepository
+            .findById(request.inspectionId())
+            .orElseThrow(
+                () ->
+                    new ResourceNotFoundException(
+                        "Inspection not found: " + request.inspectionId()));
+
+    EquipmentInspectionItem inspectionItem =
+        inspectionItemRepository
+            .findById(request.inspectionItemId())
+            .orElseThrow(
+                () ->
+                    new ResourceNotFoundException(
+                        "Equipment inspection item not found: " + request.inspectionItemId()));
+
+    if (!inspection.getEquipment().getId().equals(inspectionItem.getEquipment().getId())) {
+      throw new IllegalArgumentException("Inspection item must belong to the inspected equipment");
+    }
+
+    InspectionResultStatus result = determineResult(request, inspectionItem);
+
+    inspectionResult.setInspection(inspection);
+    inspectionResult.setInspectionItem(inspectionItem);
+    inspectionResult.setNumericValue(request.numericValue());
+    inspectionResult.setBooleanValue(request.booleanValue());
+    inspectionResult.setResult(result);
+    inspectionResult.setComment(request.comment());
+
+    InspectionResult updatedInspectionResult = inspectionResultRepository.save(inspectionResult);
+
+    return toResponse(updatedInspectionResult);
+  }
+
+  public void delete(Long id) {
+    InspectionResult inspectionResult =
+        inspectionResultRepository
+            .findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Inspection result not found: " + id));
+
+    inspectionResultRepository.delete(inspectionResult);
+  }
 }
