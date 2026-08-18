@@ -189,6 +189,13 @@ public class InspectionResultService {
       throw new IllegalArgumentException("Inspection item must belong to the inspected equipment");
     }
 
+    if (inspectionResultRepository.existsByInspectionIdAndInspectionItemIdAndIdNot(
+        request.inspectionId(), request.inspectionItemId(), id)) {
+
+      throw new IllegalArgumentException(
+          "Inspection result already exists for this inspection item");
+    }
+
     InspectionResultStatus result = determineResult(request, inspectionItem);
 
     inspectionResult.setInspection(inspection);

@@ -8,4 +8,7 @@ public interface InspectionResultRepository extends JpaRepository<InspectionResu
   List<InspectionResult> findByInspectionId(Long inspectionId);
 
   boolean existsByInspectionIdAndInspectionItemId(Long inspectionId, Long inspectionItemId);
+
+  boolean existsByInspectionIdAndInspectionItemIdAndIdNot(
+      Long inspectionId, Long inspectionItemId, Long id);
 }
