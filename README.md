@@ -104,21 +104,46 @@ Pull Requestのマージ後は、以下の手順でローカル環境を整理�
 
 現在実装済みのAPIです。
 
-| メソッド | エンドポイント        | 説明               |
-| -------- | --------------------- | ------------------ |
-| POST     | `/api/equipment`      | 設備を登録する     |
-| GET      | `/api/equipment`      | 設備一覧を取得する |
-| GET      | `/api/equipment/{id}` | 設備詳細を取得する |
-| PUT      | `/api/equipment/{id}` | 設備情報を更新する |
-| DELETE   | `/api/equipment/{id}` | 設備を削除する     |
+| メソッド | エンドポイント                                      | 説明                                       |
+| -------- | --------------------------------------------------- | ------------------------------------------ |
+| POST     | `/api/equipment`                                    | 設備を登録する                             |
+| GET      | `/api/equipment`                                    | 設備一覧を取得する                         |
+| GET      | `/api/equipment/{id}`                               | 設備詳細を取得する                         |
+| PUT      | `/api/equipment/{id}`                               | 設備情報を更新する                         |
+| DELETE   | `/api/equipment/{id}`                               | 設備を削除する                             |
+| POST     | `/api/inspections`                                  | 点検を登録する                             |
+| GET      | `/api/inspections`                                  | 点検一覧を取得する                         |
+| GET      | `/api/inspections/{id}`                             | 点検詳細を取得する                         |
+| PUT      | `/api/inspections/{id}`                             | 点検情報を更新する                         |
+| DELETE   | `/api/inspections/{id}`                             | 点検を削除する                             |
+| POST     | `/api/inspection-items`                             | 設備点検項目を登録する                     |
+| GET      | `/api/inspection-items`                             | 設備点検項目一覧を取得する                 |
+| GET      | `/api/inspection-items/{id}`                        | 設備点検項目を取得する                     |
+| GET      | `/api/inspection-items/equipment/{equipmentId}`     | 設備ごとの点検項目一覧を取得する           |
+| PUT      | `/api/inspection-items/{id}`                        | 設備点検項目を更新する                     |
+| DELETE   | `/api/inspection-items/{id}`                        | 設備点検項目を削除する                     |
+| POST     | `/api/inspection-results`                           | 点検結果を登録し、正常・異常を自動判定する |
+| GET      | `/api/inspection-results`                           | 点検結果一覧を取得する                     |
+| GET      | `/api/inspection-results/{id}`                      | 点検結果を取得する                         |
+| GET      | `/api/inspection-results/inspection/{inspectionId}` | 点検ごとの結果一覧を取得する               |
+| PUT      | `/api/inspection-results/{id}`                      | 点検結果を更新し、判定結果を再計算する     |
+| DELETE   | `/api/inspection-results/{id}`                      | 点検結果を削除する                         |
 
 ### エラーレスポンス
 
-| HTTPステータス  | 内容                     |
-| --------------- | ------------------------ |
-| 400 Bad Request | 入力バリデーションエラー |
-| 404 Not Found   | 指定した設備が存在しない |
-| 409 Conflict    | 設備コードが重複している |
+| HTTPステータス  | 内容                                                                   |
+| --------------- | ---------------------------------------------------------------------- |
+| 400 Bad Request | 入力バリデーションエラー、点検結果の入力値不整合、設備整合性エラーなど |
+| 404 Not Found   | 指定した設備、点検、点検項目、点検結果などが存在しない                 |
+| 409 Conflict    | 設備コードなど一意制約対象の値が重複している                           |
+
+### 点検結果の自動判定
+
+点検結果はサーバー側で判定する。
+
+- `NUMERIC`: 正常下限値・正常上限値と実測値を比較して `OK` / `NG` を判定する
+- `BOOLEAN`: `normalBooleanValue` と入力値を比較して `OK` / `NG` を判定する
+- `NOT_APPLICABLE`: 今回の点検で判定対象外の場合に使用する
 
 ### コードフォーマット
 
