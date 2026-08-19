@@ -1,7 +1,14 @@
 #!/usr/bin/env sh
 
-./mvnw spotless:apply || exit 1
+# コミット対象としてステージ済みのJavaファイルを取得
+STAGED_JAVA_FILES=$(git diff --cached --name-only --diff-filter=ACMR | grep '\.java$' || true)
 
-git add -A
+# Javaファイルがステージされている場合のみSpotlessを実行
+if [ -n "$STAGED_JAVA_FILES" ]; then
+  ./mvnw spotless:apply || exit 1
 
-./mvnw spotless:check || exit 1
+  # 最初からステージされていたJavaファイルだけ再ステージ
+  echo "$STAGED_JAVA_FILES" | xargs git add
+
+  ./mvnw spotless:check || exit 1
+fi
