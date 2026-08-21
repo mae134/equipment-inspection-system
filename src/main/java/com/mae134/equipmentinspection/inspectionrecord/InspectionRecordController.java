@@ -6,6 +6,7 @@ import com.mae134.equipmentinspection.exception.ResourceNotFoundException;
 import com.mae134.equipmentinspection.inspectionitem.EquipmentInspectionItemResponse;
 import com.mae134.equipmentinspection.inspectionitem.EquipmentInspectionItemService;
 import com.mae134.equipmentinspection.inspectionitem.InspectionItemType;
+import com.mae134.equipmentinspection.inspectionresult.InspectionResultResponse;
 import jakarta.validation.Valid;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -113,15 +114,20 @@ public class InspectionRecordController {
     }
 
     try {
-      inspectionRecordService.save(equipmentId, form);
+      List<InspectionResultResponse> results = inspectionRecordService.save(equipmentId, form);
+
+      addViewModel(equipmentId, inspectionItems, model);
+      model.addAttribute("registrationSuccess", true);
+      model.addAttribute("inspectionResults", results);
+
+      return "inspection-record";
+
     } catch (IllegalArgumentException e) {
       bindingResult.reject("registrationError", e.getMessage());
 
       addViewModel(equipmentId, inspectionItems, model);
       return "inspection-record";
     }
-
-    return "redirect:/equipment/" + equipmentId + "/inspections/new";
   }
 
   private void addViewModel(

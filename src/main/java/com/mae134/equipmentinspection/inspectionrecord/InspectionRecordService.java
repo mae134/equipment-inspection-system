@@ -4,7 +4,10 @@ import com.mae134.equipmentinspection.inspection.InspectionRequest;
 import com.mae134.equipmentinspection.inspection.InspectionResponse;
 import com.mae134.equipmentinspection.inspection.InspectionService;
 import com.mae134.equipmentinspection.inspectionresult.InspectionResultRequest;
+import com.mae134.equipmentinspection.inspectionresult.InspectionResultResponse;
 import com.mae134.equipmentinspection.inspectionresult.InspectionResultService;
+import java.util.ArrayList;
+import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,13 +24,15 @@ public class InspectionRecordService {
   }
 
   @Transactional
-  public void save(Long equipmentId, InspectionRecordForm form) {
+  public List<InspectionResultResponse> save(Long equipmentId, InspectionRecordForm form) {
 
     InspectionRequest inspectionRequest =
         new InspectionRequest(
             equipmentId, form.getUserId(), form.getInspectionAt(), form.getComment());
 
     InspectionResponse inspection = inspectionService.save(inspectionRequest);
+
+    List<InspectionResultResponse> results = new ArrayList<>();
 
     for (InspectionRecordItemForm item : form.getItems()) {
 
@@ -40,7 +45,9 @@ public class InspectionRecordService {
               item.isNotApplicable(),
               item.getComment());
 
-      inspectionResultService.save(resultRequest);
+      results.add(inspectionResultService.save(resultRequest));
     }
+
+    return results;
   }
 }
