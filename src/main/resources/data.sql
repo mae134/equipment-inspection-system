@@ -71,3 +71,23 @@ INSERT INTO equipment_inspection_item (
   CURRENT_TIMESTAMP,
   CURRENT_TIMESTAMP
 );
+
+INSERT INTO users (
+    id,
+    name,
+    email,
+    password_hash,
+    role,
+    active,
+    created_at,
+    updated_at
+) VALUES (
+    1,
+    'テスト点検者',
+    'inspector@example.com',
+    'dummy-password-hash',
+    'INSPECTOR',
+    TRUE,
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP
+);

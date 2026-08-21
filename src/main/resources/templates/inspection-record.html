@@ -18,80 +18,129 @@
     </p>
     <h2>点検項目</h2>
 
-    <table border="1">
-      <thead>
-        <tr>
-          <th>点検項目</th>
-          <th>説明</th>
-          <th>正常条件</th>
-          <th>入力</th>
-          <th>対象外</th>
-          <th>備考</th>
-        </tr>
-      </thead>
+    <form
+      th:action="@{/equipment/{equipmentId}/inspections(equipmentId=${equipment.id})}"
+      th:object="${inspectionRecordForm}"
+      method="post"
+    >
+      <div>
+        <label>
+          点検者 *
+          <select th:field="*{userId}">
+            <option value="">選択してください</option>
+            <option value="1">テスト点検者</option>
+          </select>
+        </label>
+      </div>
 
-      <tbody>
-        <tr th:each="item : ${inspectionItems}" th:if="${item.active}">
-          <td th:text="${item.name}"></td>
+      <div>
+        <label>
+          点検日時 *
+          <input type="datetime-local" th:field="*{inspectionAt}" />
+        </label>
+      </div>
 
-          <td th:text="${item.description}"></td>
+      <div>
+        <label>
+          全体備考
+          <textarea th:field="*{comment}" maxlength="500"></textarea>
+        </label>
+      </div>
 
-          <!-- 正常条件 -->
-          <td>
-            <span th:if="${item.type.name() == 'NUMERIC'}">
-              <span th:text="${item.minValue}"></span>
-              ～
-              <span th:text="${item.maxValue}"></span>
-              <span th:text="${item.unit}"></span>
-            </span>
+      <table border="1">
+        <thead>
+          <tr>
+            <th>点検項目</th>
+            <th>説明</th>
+            <th>正常条件</th>
+            <th>入力</th>
+            <th>対象外</th>
+            <th>備考</th>
+          </tr>
+        </thead>
 
-            <span th:if="${item.type.name() == 'BOOLEAN'}">
-              正常値：
-              <span
-                th:text="${item.normalBooleanValue ? 'はい' : 'いいえ'}"
-              ></span>
-            </span>
-          </td>
+        <tbody>
+          <tr th:each="item, stat : ${inspectionItems}">
+            <td>
+              <input
+                type="hidden"
+                th:field="*{items[__${stat.index}__].inspectionItemId}"
+              />
+              <span th:text="${item.name}"></span>
+            </td>
 
-          <!-- 入力 -->
-          <td>
-            <div th:if="${item.type.name() == 'NUMERIC'}">
-              <input type="number" step="any" />
-              <span th:text="${item.unit}"></span>
-            </div>
+            <td th:text="${item.description}"></td>
 
-            <div th:if="${item.type.name() == 'BOOLEAN'}">
-              <label>
+            <!-- 正常条件 -->
+            <td>
+              <span th:if="${item.type.name() == 'NUMERIC'}">
+                <span th:text="${item.minValue}"></span>
+                ～
+                <span th:text="${item.maxValue}"></span>
+                <span th:text="${item.unit}"></span>
+              </span>
+
+              <span th:if="${item.type.name() == 'BOOLEAN'}">
+                正常値：
+                <span
+                  th:text="${item.normalBooleanValue ? 'はい' : 'いいえ'}"
+                ></span>
+              </span>
+            </td>
+
+            <!-- 入力 -->
+            <td>
+              <div th:if="${item.type.name() == 'NUMERIC'}">
                 <input
-                  type="radio"
-                  th:name="'booleanValue-' + ${item.id}"
-                  value="true"
+                  type="number"
+                  step="any"
+                  th:field="*{items[__${stat.index}__].numericValue}"
                 />
-                はい
-              </label>
+                <span th:text="${item.unit}"></span>
+              </div>
 
-              <label>
-                <input
-                  type="radio"
-                  th:name="'booleanValue-' + ${item.id}"
-                  value="false"
-                />
-                いいえ
-              </label>
-            </div>
-          </td>
+              <div th:if="${item.type.name() == 'BOOLEAN'}">
+                <label>
+                  <input
+                    type="radio"
+                    th:field="*{items[__${stat.index}__].booleanValue}"
+                    value="true"
+                  />
+                  はい
+                </label>
 
-          <!-- 対象外 -->
-          <td>
-            <input type="checkbox" />
-          </td>
+                <label>
+                  <input
+                    type="radio"
+                    th:field="*{items[__${stat.index}__].booleanValue}"
+                    value="false"
+                  />
+                  いいえ
+                </label>
+              </div>
+            </td>
 
-          <!-- 備考 -->
-          <td>
-            <input type="text" maxlength="500" />
-          </td>
-        </tr>
-      </tbody>
-    </table>
+            <!-- 対象外 -->
+            <td>
+              <input
+                type="checkbox"
+                th:field="*{items[__${stat.index}__].notApplicable}"
+              />
+            </td>
+
+            <!-- 備考 -->
+            <td>
+              <input
+                type="text"
+                maxlength="500"
+                th:field="*{items[__${stat.index}__].comment}"
+              />
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <button type="submit">保存</button>
+    </form>
   </body>
 </html>
