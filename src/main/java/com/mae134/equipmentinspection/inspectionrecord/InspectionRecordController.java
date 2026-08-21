@@ -87,6 +87,11 @@ public class InspectionRecordController {
         EquipmentInspectionItemResponse inspectionItem = inspectionItems.get(i);
 
         if (formItem.isNotApplicable()) {
+          if (formItem.getNumericValue() != null || formItem.getBooleanValue() != null) {
+            bindingResult.rejectValue(
+                "items[" + i + "].notApplicable", "invalid", "対象外の場合は値を入力しないでください");
+          }
+
           continue;
         }
 

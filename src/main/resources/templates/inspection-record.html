@@ -148,6 +148,11 @@
                 type="checkbox"
                 th:field="*{items[__${stat.index}__].notApplicable}"
               />
+
+              <div
+                th:if="${#fields.hasErrors('items[' + stat.index + '].notApplicable')}"
+                th:errors="*{items[__${stat.index}__].notApplicable}"
+              ></div>
             </td>
 
             <!-- 備考 -->
