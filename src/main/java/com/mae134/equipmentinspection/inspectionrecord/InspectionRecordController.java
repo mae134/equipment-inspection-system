@@ -108,20 +108,32 @@ public class InspectionRecordController {
     }
 
     if (bindingResult.hasErrors()) {
-      EquipmentResponse equipment =
-          equipmentService
-              .findById(equipmentId)
-              .orElseThrow(
-                  () -> new ResourceNotFoundException("Equipment not found: " + equipmentId));
-
-      model.addAttribute("equipment", equipment);
-      model.addAttribute("inspectionItems", inspectionItems);
-
+      addViewModel(equipmentId, inspectionItems, model);
       return "inspection-record";
     }
 
-    inspectionRecordService.save(equipmentId, form);
+    try {
+      inspectionRecordService.save(equipmentId, form);
+    } catch (IllegalArgumentException e) {
+      bindingResult.reject("registrationError", e.getMessage());
+
+      addViewModel(equipmentId, inspectionItems, model);
+      return "inspection-record";
+    }
 
     return "redirect:/equipment/" + equipmentId + "/inspections/new";
+  }
+
+  private void addViewModel(
+      Long equipmentId, List<EquipmentInspectionItemResponse> inspectionItems, Model model) {
+
+    EquipmentResponse equipment =
+        equipmentService
+            .findById(equipmentId)
+            .orElseThrow(
+                () -> new ResourceNotFoundException("Equipment not found: " + equipmentId));
+
+    model.addAttribute("equipment", equipment);
+    model.addAttribute("inspectionItems", inspectionItems);
   }
 }
