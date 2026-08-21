@@ -1,9 +1,12 @@
 package com.mae134.equipmentinspection.inspectionrecord;
 
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 
 public class InspectionRecordItemForm {
 
+  @NotNull(message = "点検項目IDは必須です")
   private Long inspectionItemId;
 
   private BigDecimal numericValue;
@@ -12,6 +15,7 @@ public class InspectionRecordItemForm {
 
   private boolean notApplicable;
 
+  @Size(max = 500, message = "備考は500文字以内で入力してください")
   private String comment;
 
   public Long getInspectionItemId() {

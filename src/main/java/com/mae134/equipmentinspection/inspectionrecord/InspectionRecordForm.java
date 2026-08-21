@@ -9,11 +9,13 @@ import java.util.List;
 
 public class InspectionRecordForm {
 
-  @NotNull private Long userId;
+  @NotNull(message = "点検者は必須です")
+  private Long userId;
 
-  @NotNull private LocalDateTime inspectionAt;
+  @NotNull(message = "点検日時は必須です")
+  private LocalDateTime inspectionAt;
 
-  @Size(max = 500)
+  @Size(max = 500, message = "全体備考は500文字以内で入力してください")
   private String comment;
 
   @Valid private List<InspectionRecordItemForm> items = new ArrayList<>();

@@ -5,10 +5,13 @@ import com.mae134.equipmentinspection.equipment.EquipmentService;
 import com.mae134.equipmentinspection.exception.ResourceNotFoundException;
 import com.mae134.equipmentinspection.inspectionitem.EquipmentInspectionItemResponse;
 import com.mae134.equipmentinspection.inspectionitem.EquipmentInspectionItemService;
+import com.mae134.equipmentinspection.inspectionitem.InspectionItemType;
+import jakarta.validation.Valid;
 import java.time.LocalDateTime;
 import java.util.List;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -64,7 +67,53 @@ public class InspectionRecordController {
 
   @PostMapping("/equipment/{equipmentId}/inspections")
   public String saveInspectionRecord(
-      @PathVariable Long equipmentId, @ModelAttribute InspectionRecordForm form) {
+      @PathVariable Long equipmentId,
+      @Valid @ModelAttribute InspectionRecordForm form,
+      BindingResult bindingResult,
+      Model model) {
+
+    List<EquipmentInspectionItemResponse> inspectionItems =
+        inspectionItemService.findByEquipmentId(equipmentId).stream()
+            .filter(EquipmentInspectionItemResponse::active)
+            .toList();
+
+    if (form.getItems().size() != inspectionItems.size()) {
+      bindingResult.reject("invalidItems", "点検項目の入力内容が不正です");
+    }
+
+    if (form.getItems().size() == inspectionItems.size()) {
+      for (int i = 0; i < form.getItems().size(); i++) {
+        InspectionRecordItemForm formItem = form.getItems().get(i);
+        EquipmentInspectionItemResponse inspectionItem = inspectionItems.get(i);
+
+        if (formItem.isNotApplicable()) {
+          continue;
+        }
+
+        if (inspectionItem.type() == InspectionItemType.NUMERIC
+            && formItem.getNumericValue() == null) {
+          bindingResult.rejectValue("items[" + i + "].numericValue", "required", "数値を入力してください");
+        }
+
+        if (inspectionItem.type() == InspectionItemType.BOOLEAN
+            && formItem.getBooleanValue() == null) {
+          bindingResult.rejectValue("items[" + i + "].booleanValue", "required", "はい・いいえを選択してください");
+        }
+      }
+    }
+
+    if (bindingResult.hasErrors()) {
+      EquipmentResponse equipment =
+          equipmentService
+              .findById(equipmentId)
+              .orElseThrow(
+                  () -> new ResourceNotFoundException("Equipment not found: " + equipmentId));
+
+      model.addAttribute("equipment", equipment);
+      model.addAttribute("inspectionItems", inspectionItems);
+
+      return "inspection-record";
+    }
 
     inspectionRecordService.save(equipmentId, form);
 

@@ -31,6 +31,8 @@
             <option value="1">テスト点検者</option>
           </select>
         </label>
+
+        <div th:if="${#fields.hasErrors('userId')}" th:errors="*{userId}"></div>
       </div>
 
       <div>
@@ -38,6 +40,11 @@
           点検日時 *
           <input type="datetime-local" th:field="*{inspectionAt}" />
         </label>
+
+        <div
+          th:if="${#fields.hasErrors('inspectionAt')}"
+          th:errors="*{inspectionAt}"
+        ></div>
       </div>
 
       <div>
@@ -45,6 +52,11 @@
           全体備考
           <textarea th:field="*{comment}" maxlength="500"></textarea>
         </label>
+
+        <div
+          th:if="${#fields.hasErrors('comment')}"
+          th:errors="*{comment}"
+        ></div>
       </div>
 
       <table border="1">
@@ -97,6 +109,11 @@
                   th:field="*{items[__${stat.index}__].numericValue}"
                 />
                 <span th:text="${item.unit}"></span>
+
+                <div
+                  th:if="${#fields.hasErrors('items[' + stat.index + '].numericValue')}"
+                  th:errors="*{items[__${stat.index}__].numericValue}"
+                ></div>
               </div>
 
               <div th:if="${item.type.name() == 'BOOLEAN'}">
@@ -117,6 +134,11 @@
                   />
                   いいえ
                 </label>
+
+                <div
+                  th:if="${#fields.hasErrors('items[' + stat.index + '].booleanValue')}"
+                  th:errors="*{items[__${stat.index}__].booleanValue}"
+                ></div>
               </div>
             </td>
 
