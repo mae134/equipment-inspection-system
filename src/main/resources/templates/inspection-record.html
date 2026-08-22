@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="UTF-8" />
+    <title>点検実施</title>
+    <link rel="stylesheet" th:href="@{/css/inspection-record.css}" />
+  </head>
+  <body>
+    <div class="container">
+      <h1>点検実施</h1>
+
+      <p>
+        設備コード：
+        <span th:text="${equipment.equipmentCode}"></span>
+      </p>
+
+      <p>
+        設備名：
+        <span th:text="${equipment.name}"></span>
+      </p>
+      <h2>点検項目</h2>
+
+      <form
+        th:action="@{/equipment/{equipmentId}/inspections(equipmentId=${equipment.id})}"
+        th:object="${inspectionRecordForm}"
+        method="post"
+      >
+        <div th:if="${#fields.hasGlobalErrors()}">
+          <p th:each="error : ${#fields.globalErrors()}" th:text="${error}"></p>
+        </div>
+
+        <div th:if="${registrationSuccess}">
+          <p>点検記録を登録しました。</p>
+
+          <ul>
+            <li th:each="result : ${inspectionResults}">
+              点検項目ID:
+              <span th:text="${result.inspectionItemId}"></span>
+
+              判定:
+              <span th:text="${result.result}"></span>
+            </li>
+          </ul>
+        </div>
+
+        <div>
+          <label>
+            点検者 *
+            <select th:field="*{userId}">
+              <option value="">選択してください</option>
+              <option value="1">テスト点検者</option>
+            </select>
+          </label>
+
+          <div
+            th:if="${#fields.hasErrors('userId')}"
+            th:errors="*{userId}"
+          ></div>
+        </div>
+
+        <div>
+          <label>
+            点検日時 *
+            <input type="datetime-local" th:field="*{inspectionAt}" />
+          </label>
+
+          <div
+            th:if="${#fields.hasErrors('inspectionAt')}"
+            th:errors="*{inspectionAt}"
+          ></div>
+        </div>
+
+        <div>
+          <label>
+            全体備考
+            <textarea th:field="*{comment}" maxlength="500"></textarea>
+          </label>
+
+          <div
+            th:if="${#fields.hasErrors('comment')}"
+            th:errors="*{comment}"
+          ></div>
+        </div>
+
+        <table border="1">
+          <thead>
+            <tr>
+              <th>点検項目</th>
+              <th>説明</th>
+              <th>正常条件</th>
+              <th>入力</th>
+              <th>対象外</th>
+              <th>備考</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <tr th:each="item, stat : ${inspectionItems}">
+              <td>
+                <input
+                  type="hidden"
+                  th:field="*{items[__${stat.index}__].inspectionItemId}"
+                />
+                <span th:text="${item.name}"></span>
+              </td>
+
+              <td th:text="${item.description}"></td>
+
+              <!-- 正常条件 -->
+              <td>
+                <span th:if="${item.type.name() == 'NUMERIC'}">
+                  <span th:text="${item.minValue}"></span>
+                  ～
+                  <span th:text="${item.maxValue}"></span>
+                  <span th:text="${item.unit}"></span>
+                </span>
+
+                <span th:if="${item.type.name() == 'BOOLEAN'}">
+                  正常値：
+                  <span
+                    th:text="${item.normalBooleanValue ? 'はい' : 'いいえ'}"
+                  ></span>
+                </span>
+              </td>
+
+              <!-- 入力 -->
+              <td>
+                <div th:if="${item.type.name() == 'NUMERIC'}">
+                  <input
+                    type="number"
+                    step="any"
+                    th:field="*{items[__${stat.index}__].numericValue}"
+                  />
+                  <span th:text="${item.unit}"></span>
+
+                  <div
+                    th:if="${#fields.hasErrors('items[' + stat.index + '].numericValue')}"
+                    th:errors="*{items[__${stat.index}__].numericValue}"
+                  ></div>
+                </div>
+
+                <div th:if="${item.type.name() == 'BOOLEAN'}">
+                  <label>
+                    <input
+                      type="radio"
+                      th:field="*{items[__${stat.index}__].booleanValue}"
+                      value="true"
+                    />
+                    はい
+                  </label>
+
+                  <label>
+                    <input
+                      type="radio"
+                      th:field="*{items[__${stat.index}__].booleanValue}"
+                      value="false"
+                    />
+                    いいえ
+                  </label>
+
+                  <div
+                    th:if="${#fields.hasErrors('items[' + stat.index + '].booleanValue')}"
+                    th:errors="*{items[__${stat.index}__].booleanValue}"
+                  ></div>
+                </div>
+              </td>
+
+              <!-- 対象外 -->
+              <td>
+                <input
+                  type="checkbox"
+                  th:field="*{items[__${stat.index}__].notApplicable}"
+                />
+
+                <div
+                  th:if="${#fields.hasErrors('items[' + stat.index + '].notApplicable')}"
+                  th:errors="*{items[__${stat.index}__].notApplicable}"
+                ></div>
+              </td>
+
+              <!-- 備考 -->
+              <td>
+                <input
+                  type="text"
+                  maxlength="500"
+                  th:field="*{items[__${stat.index}__].comment}"
+                />
+
+                <div
+                  th:if="${#fields.hasErrors('items[' + stat.index + '].comment')}"
+                  th:errors="*{items[__${stat.index}__].comment}"
+                ></div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <button type="submit">保存</button>
+      </form>
+    </div>
+  </body>
+</html>
