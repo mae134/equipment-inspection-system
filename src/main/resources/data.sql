@@ -85,7 +85,7 @@ INSERT INTO users (
     1,
     'テスト点検者',
     'inspector@example.com',
-    'dummy-password-hash',
+    '$2a$10$xOtqNjmCryrB6.VOOePjjuluyKA94M4PFTcVIUFYx1lWV81gpz2OC',
     'INSPECTOR',
     TRUE,
     CURRENT_TIMESTAMP,
