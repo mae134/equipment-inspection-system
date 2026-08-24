@@ -44,18 +44,8 @@
         </div>
 
         <div>
-          <label>
-            点検者 *
-            <select th:field="*{userId}">
-              <option value="">選択してください</option>
-              <option value="1">テスト点検者</option>
-            </select>
-          </label>
-
-          <div
-            th:if="${#fields.hasErrors('userId')}"
-            th:errors="*{userId}"
-          ></div>
+          <span>点検者：</span>
+          <span th:text="${currentUser.name}"></span>
         </div>
 
         <div>
