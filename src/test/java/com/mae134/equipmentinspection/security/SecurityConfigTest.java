@@ -1,8 +1,10 @@
 package com.mae134.equipmentinspection.security;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestBuilders.logout;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -52,5 +54,10 @@ class SecurityConfigTest {
         .perform(logout())
         .andExpect(status().is3xxRedirection())
         .andExpect(redirectedUrl("/login?logout"));
+  }
+
+  @Test
+  void unauthenticatedUserCannotPerformProtectedUpdate() throws Exception {
+    mockMvc.perform(post("/api/equipment").with(csrf())).andExpect(status().is3xxRedirection());
   }
 }
