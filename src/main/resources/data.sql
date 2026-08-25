@@ -81,12 +81,23 @@ INSERT INTO users (
     active,
     created_at,
     updated_at
-) VALUES (
+) VALUES
+(
     1,
     'テスト点検者',
     'inspector@example.com',
     '$2a$10$xOtqNjmCryrB6.VOOePjjuluyKA94M4PFTcVIUFYx1lWV81gpz2OC',
     'INSPECTOR',
+    TRUE,
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP
+),
+(
+    2,
+    'テスト管理者',
+    'admin@example.com',
+    '$2a$10$xOtqNjmCryrB6.VOOePjjuluyKA94M4PFTcVIUFYx1lWV81gpz2OC',
+    'ADMIN',
     TRUE,
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP

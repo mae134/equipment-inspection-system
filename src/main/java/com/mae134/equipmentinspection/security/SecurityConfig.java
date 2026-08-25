@@ -16,6 +16,12 @@ public class SecurityConfig {
             auth ->
                 auth.requestMatchers("/login", "/h2-console/**")
                     .permitAll()
+                    .requestMatchers("/api/**")
+                    .hasRole("ADMIN")
+                    .requestMatchers("/equipment/*/inspections/**")
+                    .hasAnyRole("ADMIN", "INSPECTOR")
+                    .requestMatchers("/")
+                    .hasAnyRole("ADMIN", "INSPECTOR")
                     .anyRequest()
                     .authenticated())
         .csrf(csrf -> csrf.ignoringRequestMatchers("/h2-console/**"))
