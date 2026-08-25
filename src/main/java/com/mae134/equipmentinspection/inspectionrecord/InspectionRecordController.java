@@ -7,7 +7,10 @@ import com.mae134.equipmentinspection.inspectionitem.EquipmentInspectionItemResp
 import com.mae134.equipmentinspection.inspectionitem.EquipmentInspectionItemService;
 import com.mae134.equipmentinspection.inspectionitem.InspectionItemType;
 import com.mae134.equipmentinspection.inspectionresult.InspectionResultResponse;
+import com.mae134.equipmentinspection.user.User;
+import com.mae134.equipmentinspection.user.UserRepository;
 import jakarta.validation.Valid;
+import java.security.Principal;
 import java.time.LocalDateTime;
 import java.util.List;
 import org.springframework.stereotype.Controller;
@@ -25,19 +28,30 @@ public class InspectionRecordController {
 
   private final EquipmentInspectionItemService inspectionItemService;
   private final InspectionRecordService inspectionRecordService;
+  private final UserRepository userRepository;
 
   public InspectionRecordController(
       EquipmentService equipmentService,
       EquipmentInspectionItemService inspectionItemService,
-      InspectionRecordService inspectionRecordService) {
+      InspectionRecordService inspectionRecordService,
+      UserRepository userRepository) {
 
     this.equipmentService = equipmentService;
     this.inspectionItemService = inspectionItemService;
     this.inspectionRecordService = inspectionRecordService;
+    this.userRepository = userRepository;
   }
 
   @GetMapping("/equipment/{equipmentId}/inspections/new")
-  public String showInspectionRecord(@PathVariable Long equipmentId, Model model) {
+  public String showInspectionRecord(
+      @PathVariable Long equipmentId, Model model, Principal principal) {
+
+    User currentUser =
+        userRepository
+            .findByEmail(principal.getName())
+            .orElseThrow(
+                () -> new ResourceNotFoundException("User not found: " + principal.getName()));
+
     EquipmentResponse equipment =
         equipmentService
             .findById(equipmentId)
@@ -62,6 +76,7 @@ public class InspectionRecordController {
     model.addAttribute("equipment", equipment);
     model.addAttribute("inspectionItems", inspectionItems);
     model.addAttribute("inspectionRecordForm", form);
+    model.addAttribute("currentUser", currentUser);
 
     return "inspection-record";
   }
@@ -71,7 +86,14 @@ public class InspectionRecordController {
       @PathVariable Long equipmentId,
       @Valid @ModelAttribute InspectionRecordForm form,
       BindingResult bindingResult,
-      Model model) {
+      Model model,
+      Principal principal) {
+
+    User currentUser =
+        userRepository
+            .findByEmail(principal.getName())
+            .orElseThrow(
+                () -> new ResourceNotFoundException("User not found: " + principal.getName()));
 
     List<EquipmentInspectionItemResponse> inspectionItems =
         inspectionItemService.findByEquipmentId(equipmentId).stream()
@@ -109,14 +131,15 @@ public class InspectionRecordController {
     }
 
     if (bindingResult.hasErrors()) {
-      addViewModel(equipmentId, inspectionItems, model);
+      addViewModel(equipmentId, inspectionItems, model, currentUser);
       return "inspection-record";
     }
 
     try {
-      List<InspectionResultResponse> results = inspectionRecordService.save(equipmentId, form);
+      List<InspectionResultResponse> results =
+          inspectionRecordService.save(equipmentId, currentUser.getId(), form);
 
-      addViewModel(equipmentId, inspectionItems, model);
+      addViewModel(equipmentId, inspectionItems, model, currentUser);
       model.addAttribute("registrationSuccess", true);
       model.addAttribute("inspectionResults", results);
 
@@ -125,13 +148,16 @@ public class InspectionRecordController {
     } catch (IllegalArgumentException e) {
       bindingResult.reject("registrationError", e.getMessage());
 
-      addViewModel(equipmentId, inspectionItems, model);
+      addViewModel(equipmentId, inspectionItems, model, currentUser);
       return "inspection-record";
     }
   }
 
   private void addViewModel(
-      Long equipmentId, List<EquipmentInspectionItemResponse> inspectionItems, Model model) {
+      Long equipmentId,
+      List<EquipmentInspectionItemResponse> inspectionItems,
+      Model model,
+      User currentUser) {
 
     EquipmentResponse equipment =
         equipmentService
@@ -141,5 +167,6 @@ public class InspectionRecordController {
 
     model.addAttribute("equipment", equipment);
     model.addAttribute("inspectionItems", inspectionItems);
+    model.addAttribute("currentUser", currentUser);
   }
 }

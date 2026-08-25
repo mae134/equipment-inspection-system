@@ -24,11 +24,11 @@ public class InspectionRecordService {
   }
 
   @Transactional
-  public List<InspectionResultResponse> save(Long equipmentId, InspectionRecordForm form) {
+  public List<InspectionResultResponse> save(
+      Long equipmentId, Long userId, InspectionRecordForm form) {
 
     InspectionRequest inspectionRequest =
-        new InspectionRequest(
-            equipmentId, form.getUserId(), form.getInspectionAt(), form.getComment());
+        new InspectionRequest(equipmentId, userId, form.getInspectionAt(), form.getComment());
 
     InspectionResponse inspection = inspectionService.save(inspectionRequest);
 

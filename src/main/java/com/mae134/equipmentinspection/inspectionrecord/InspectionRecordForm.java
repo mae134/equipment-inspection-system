@@ -9,9 +9,6 @@ import java.util.List;
 
 public class InspectionRecordForm {
 
-  @NotNull(message = "点検者は必須です")
-  private Long userId;
-
   @NotNull(message = "点検日時は必須です")
   private LocalDateTime inspectionAt;
 
@@ -19,14 +16,6 @@ public class InspectionRecordForm {
   private String comment;
 
   @Valid private List<InspectionRecordItemForm> items = new ArrayList<>();
-
-  public Long getUserId() {
-    return userId;
-  }
-
-  public void setUserId(Long userId) {
-    this.userId = userId;
-  }
 
   public LocalDateTime getInspectionAt() {
     return inspectionAt;
