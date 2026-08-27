@@ -1,5 +1,4 @@
 INSERT INTO equipment (
-  id,
   equipment_code,
   name,
   manufacturer,
@@ -12,7 +11,6 @@ INSERT INTO equipment (
   created_at,
   updated_at
 ) VALUES (
-  1,
   'EQ-001',
   'モーター設備A',
   'テスト製作所',
