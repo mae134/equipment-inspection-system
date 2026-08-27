@@ -866,9 +866,11 @@ DELETE /api/inspection-results/{id}
 
 ### Response
 
-現在の実装では明示的な `204 No Content` 指定を行っていない。
+成功:
 
-成功時はControllerの現在の実装に従ったレスポンスとなる。
+```text
+204 No Content
+```
 
 対象が存在しない場合:
 
