@@ -60,4 +60,23 @@ class SecurityConfigTest {
   void unauthenticatedUserCannotPerformProtectedUpdate() throws Exception {
     mockMvc.perform(post("/api/equipment").with(csrf())).andExpect(status().is3xxRedirection());
   }
+
+  @Test
+  void unauthenticatedUserCannotAccessDashboard() throws Exception {
+    mockMvc.perform(get("/dashboard")).andExpect(status().is3xxRedirection());
+  }
+
+  @Test
+  void authenticatedUserCanAccessDashboard() throws Exception {
+    mockMvc
+        .perform(get("/dashboard").with(user("inspector@example.com").roles("INSPECTOR")))
+        .andExpect(status().isOk());
+  }
+
+  @Test
+  void adminCanAccessDashboard() throws Exception {
+    mockMvc
+        .perform(get("/dashboard").with(user("admin@example.com").roles("ADMIN")))
+        .andExpect(status().isOk());
+  }
 }

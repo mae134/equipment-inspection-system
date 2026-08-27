@@ -88,6 +88,18 @@ public class EquipmentService {
     equipmentRepository.delete(equipment);
   }
 
+  public List<EquipmentResponse> search(String keyword) {
+    if (keyword == null || keyword.isBlank()) {
+      return findAll();
+    }
+
+    return equipmentRepository
+        .findByEquipmentCodeContainingIgnoreCaseOrNameContainingIgnoreCase(keyword, keyword)
+        .stream()
+        .map(this::toResponse)
+        .toList();
+  }
+
   private EquipmentResponse toResponse(Equipment equipment) {
     return new EquipmentResponse(
         equipment.getId(),

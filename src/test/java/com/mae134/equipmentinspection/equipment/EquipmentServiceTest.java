@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 import com.mae134.equipmentinspection.exception.DuplicateResourceException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -92,5 +93,60 @@ class EquipmentServiceTest {
 
     verify(equipmentRepository).existsByEquipmentCode("EQ-001");
     verify(equipmentRepository, never()).save(any(Equipment.class));
+  }
+
+  @Test
+  void searchShouldReturnAllEquipmentWhenKeywordIsNull() {
+    Equipment equipment = new Equipment();
+    equipment.setId(1L);
+    equipment.setEquipmentCode("EQ-001");
+    equipment.setName("ポンプA");
+
+    when(equipmentRepository.findAll()).thenReturn(List.of(equipment));
+
+    List<EquipmentResponse> result = equipmentService.search(null);
+
+    assertEquals(1, result.size());
+    assertEquals("EQ-001", result.get(0).equipmentCode());
+
+    verify(equipmentRepository).findAll();
+  }
+
+  @Test
+  void searchShouldReturnAllEquipmentWhenKeywordIsBlank() {
+    Equipment equipment = new Equipment();
+    equipment.setId(1L);
+    equipment.setEquipmentCode("EQ-001");
+    equipment.setName("ポンプA");
+
+    when(equipmentRepository.findAll()).thenReturn(List.of(equipment));
+
+    List<EquipmentResponse> result = equipmentService.search("   ");
+
+    assertEquals(1, result.size());
+    assertEquals("EQ-001", result.get(0).equipmentCode());
+
+    verify(equipmentRepository).findAll();
+  }
+
+  @Test
+  void searchShouldReturnMatchingEquipmentWhenKeywordIsSpecified() {
+    Equipment equipment = new Equipment();
+    equipment.setId(1L);
+    equipment.setEquipmentCode("EQ-001");
+    equipment.setName("ポンプA");
+
+    when(equipmentRepository.findByEquipmentCodeContainingIgnoreCaseOrNameContainingIgnoreCase(
+            "ポンプ", "ポンプ"))
+        .thenReturn(List.of(equipment));
+
+    List<EquipmentResponse> result = equipmentService.search("ポンプ");
+
+    assertEquals(1, result.size());
+    assertEquals("EQ-001", result.get(0).equipmentCode());
+    assertEquals("ポンプA", result.get(0).name());
+
+    verify(equipmentRepository)
+        .findByEquipmentCodeContainingIgnoreCaseOrNameContainingIgnoreCase("ポンプ", "ポンプ");
   }
 }
