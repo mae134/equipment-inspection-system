@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 public class GlobalExceptionHandler {
 
   @ExceptionHandler(MethodArgumentNotValidException.class)
-  public ResponseEntity<Map<String, Object>> handleValidationException(
+  public ResponseEntity<ValidationErrorResponse> handleValidationException(
       MethodArgumentNotValidException exception) {
 
     Map<String, String> errors = new LinkedHashMap<>();
@@ -22,43 +22,38 @@ public class GlobalExceptionHandler {
         .getFieldErrors()
         .forEach(error -> errors.put(error.getField(), error.getDefaultMessage()));
 
-    Map<String, Object> response = new LinkedHashMap<>();
-    response.put("status", HttpStatus.BAD_REQUEST.value());
-    response.put("message", "Validation failed");
-    response.put("errors", errors);
+    ValidationErrorResponse response =
+        new ValidationErrorResponse(HttpStatus.BAD_REQUEST.value(), "Validation failed", errors);
 
     return ResponseEntity.badRequest().body(response);
   }
 
   @ExceptionHandler(DuplicateResourceException.class)
-  public ResponseEntity<Map<String, Object>> handleDuplicateResourceException(
+  public ResponseEntity<ApiErrorResponse> handleDuplicateResourceException(
       DuplicateResourceException exception) {
 
-    Map<String, Object> response = new LinkedHashMap<>();
-    response.put("status", HttpStatus.CONFLICT.value());
-    response.put("message", exception.getMessage());
+    ApiErrorResponse response =
+        new ApiErrorResponse(HttpStatus.CONFLICT.value(), exception.getMessage());
 
     return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
   }
 
   @ExceptionHandler(ResourceNotFoundException.class)
-  public ResponseEntity<Map<String, Object>> handleResourceNotFoundException(
+  public ResponseEntity<ApiErrorResponse> handleResourceNotFoundException(
       ResourceNotFoundException exception) {
 
-    Map<String, Object> response = new LinkedHashMap<>();
-    response.put("status", HttpStatus.NOT_FOUND.value());
-    response.put("message", exception.getMessage());
+    ApiErrorResponse response =
+        new ApiErrorResponse(HttpStatus.NOT_FOUND.value(), exception.getMessage());
 
     return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
   }
 
   @ExceptionHandler(IllegalArgumentException.class)
-  public ResponseEntity<Map<String, Object>> handleIllegalArgumentException(
+  public ResponseEntity<ApiErrorResponse> handleIllegalArgumentException(
       IllegalArgumentException exception) {
 
-    Map<String, Object> response = new LinkedHashMap<>();
-    response.put("status", HttpStatus.BAD_REQUEST.value());
-    response.put("message", exception.getMessage());
+    ApiErrorResponse response =
+        new ApiErrorResponse(HttpStatus.BAD_REQUEST.value(), exception.getMessage());
 
     return ResponseEntity.badRequest().body(response);
   }
