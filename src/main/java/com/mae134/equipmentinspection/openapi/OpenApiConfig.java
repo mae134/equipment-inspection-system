@@ -14,7 +14,13 @@ public class OpenApiConfig {
         .info(
             new Info()
                 .title("設備点検管理システム API")
-                .description("設備、点検項目、点検、点検結果を管理するREST API")
+                .description(
+                    """
+                        設備、点検項目、点検、点検結果を管理するREST API。
+
+                        APIへのアクセスにはSpring Securityによる認証が必要です。
+                        /api/** へのアクセスにはADMINロールが必要です。
+                        """)
                 .version("1.0.0"));
   }
 }
