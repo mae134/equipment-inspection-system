@@ -1,6 +1,10 @@
 package com.mae134.equipmentinspection.equipment;
 
+import com.mae134.equipmentinspection.exception.ApiErrorResponse;
+import com.mae134.equipmentinspection.exception.ValidationErrorResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -40,8 +44,20 @@ public class EquipmentController {
   @Operation(summary = "設備を登録する")
   @ApiResponses({
     @ApiResponse(responseCode = "200", description = "設備の登録に成功"),
-    @ApiResponse(responseCode = "400", description = "入力値が不正"),
-    @ApiResponse(responseCode = "409", description = "設備コードが重複している")
+    @ApiResponse(
+        responseCode = "400",
+        description = "入力値が不正",
+        content =
+            @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ValidationErrorResponse.class))),
+    @ApiResponse(
+        responseCode = "409",
+        description = "設備コードが重複している",
+        content =
+            @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ApiErrorResponse.class)))
   })
   public EquipmentResponse save(@Valid @RequestBody EquipmentRequest request) {
     return equipmentService.save(request);
@@ -64,9 +80,27 @@ public class EquipmentController {
   @Operation(summary = "設備を更新する")
   @ApiResponses({
     @ApiResponse(responseCode = "200", description = "設備の更新に成功"),
-    @ApiResponse(responseCode = "400", description = "入力値が不正"),
-    @ApiResponse(responseCode = "404", description = "指定した設備が存在しない"),
-    @ApiResponse(responseCode = "409", description = "設備コードが重複している")
+    @ApiResponse(
+        responseCode = "400",
+        description = "入力値が不正",
+        content =
+            @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ValidationErrorResponse.class))),
+    @ApiResponse(
+        responseCode = "404",
+        description = "指定した設備が存在しない",
+        content =
+            @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ApiErrorResponse.class))),
+    @ApiResponse(
+        responseCode = "409",
+        description = "設備コードが重複している",
+        content =
+            @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ApiErrorResponse.class)))
   })
   public EquipmentResponse update(
       @PathVariable Long id, @Valid @RequestBody EquipmentRequest request) {
@@ -77,7 +111,13 @@ public class EquipmentController {
   @Operation(summary = "設備を削除する")
   @ApiResponses({
     @ApiResponse(responseCode = "204", description = "設備の削除に成功"),
-    @ApiResponse(responseCode = "404", description = "指定した設備が存在しない")
+    @ApiResponse(
+        responseCode = "404",
+        description = "指定した設備が存在しない",
+        content =
+            @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ApiErrorResponse.class)))
   })
   public ResponseEntity<Void> delete(@PathVariable Long id) {
     equipmentService.delete(id);

@@ -1,6 +1,10 @@
 package com.mae134.equipmentinspection.inspectionresult;
 
+import com.mae134.equipmentinspection.exception.ApiErrorResponse;
+import com.mae134.equipmentinspection.exception.ValidationErrorResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -32,8 +36,20 @@ public class InspectionResultController {
   @Operation(summary = "点検結果を登録する")
   @ApiResponses({
     @ApiResponse(responseCode = "200", description = "点検結果の登録に成功"),
-    @ApiResponse(responseCode = "400", description = "入力値または点検結果の設定が不正"),
-    @ApiResponse(responseCode = "404", description = "指定した点検または点検項目が存在しない")
+    @ApiResponse(
+        responseCode = "400",
+        description = "入力値または点検結果の設定が不正",
+        content =
+            @Content(
+                mediaType = "application/json",
+                schema = @Schema(oneOf = {ValidationErrorResponse.class, ApiErrorResponse.class}))),
+    @ApiResponse(
+        responseCode = "404",
+        description = "指定した点検または点検項目が存在しない",
+        content =
+            @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ApiErrorResponse.class)))
   })
   public InspectionResultResponse save(@Valid @RequestBody InspectionResultRequest request) {
 
@@ -51,7 +67,13 @@ public class InspectionResultController {
   @Operation(summary = "点検結果を取得する")
   @ApiResponses({
     @ApiResponse(responseCode = "200", description = "点検結果の取得に成功"),
-    @ApiResponse(responseCode = "404", description = "指定した点検結果が存在しない")
+    @ApiResponse(
+        responseCode = "404",
+        description = "指定した点検結果が存在しない",
+        content =
+            @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ApiErrorResponse.class)))
   })
   public InspectionResultResponse findById(@PathVariable Long id) {
     return inspectionResultService.findById(id);
@@ -61,7 +83,13 @@ public class InspectionResultController {
   @Operation(summary = "点検に紐づく点検結果一覧を取得する")
   @ApiResponses({
     @ApiResponse(responseCode = "200", description = "点検に紐づく点検結果一覧の取得に成功"),
-    @ApiResponse(responseCode = "404", description = "指定した点検が存在しない")
+    @ApiResponse(
+        responseCode = "404",
+        description = "指定した点検が存在しない",
+        content =
+            @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ApiErrorResponse.class)))
   })
   public List<InspectionResultResponse> findByInspectionId(@PathVariable Long inspectionId) {
     return inspectionResultService.findByInspectionId(inspectionId);
@@ -71,8 +99,20 @@ public class InspectionResultController {
   @Operation(summary = "点検結果を更新する")
   @ApiResponses({
     @ApiResponse(responseCode = "200", description = "点検結果の更新に成功"),
-    @ApiResponse(responseCode = "400", description = "入力値または点検結果の設定が不正"),
-    @ApiResponse(responseCode = "404", description = "指定した点検結果、点検または点検項目が存在しない")
+    @ApiResponse(
+        responseCode = "400",
+        description = "入力値または点検結果の設定が不正",
+        content =
+            @Content(
+                mediaType = "application/json",
+                schema = @Schema(oneOf = {ValidationErrorResponse.class, ApiErrorResponse.class}))),
+    @ApiResponse(
+        responseCode = "404",
+        description = "指定した点検結果、点検または点検項目が存在しない",
+        content =
+            @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ApiErrorResponse.class)))
   })
   public InspectionResultResponse update(
       @PathVariable Long id, @Valid @RequestBody InspectionResultRequest request) {
@@ -84,7 +124,13 @@ public class InspectionResultController {
   @Operation(summary = "点検結果を削除する")
   @ApiResponses({
     @ApiResponse(responseCode = "204", description = "点検結果の削除に成功"),
-    @ApiResponse(responseCode = "404", description = "指定した点検結果が存在しない")
+    @ApiResponse(
+        responseCode = "404",
+        description = "指定した点検結果が存在しない",
+        content =
+            @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ApiErrorResponse.class)))
   })
   public void delete(@PathVariable Long id) {
     inspectionResultService.delete(id);

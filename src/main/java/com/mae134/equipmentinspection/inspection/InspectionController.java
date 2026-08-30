@@ -1,6 +1,10 @@
 package com.mae134.equipmentinspection.inspection;
 
+import com.mae134.equipmentinspection.exception.ApiErrorResponse;
+import com.mae134.equipmentinspection.exception.ValidationErrorResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -39,7 +43,13 @@ public class InspectionController {
   @Operation(summary = "点検を取得する")
   @ApiResponses({
     @ApiResponse(responseCode = "200", description = "点検の取得に成功"),
-    @ApiResponse(responseCode = "404", description = "指定した点検が存在しない")
+    @ApiResponse(
+        responseCode = "404",
+        description = "指定した点検が存在しない",
+        content =
+            @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ApiErrorResponse.class)))
   })
   public InspectionResponse findById(@PathVariable Long id) {
     return inspectionService.findById(id);
@@ -49,8 +59,20 @@ public class InspectionController {
   @Operation(summary = "点検を登録する")
   @ApiResponses({
     @ApiResponse(responseCode = "200", description = "点検の登録に成功"),
-    @ApiResponse(responseCode = "400", description = "入力値が不正"),
-    @ApiResponse(responseCode = "404", description = "指定した設備またはユーザーが存在しない")
+    @ApiResponse(
+        responseCode = "400",
+        description = "入力値が不正",
+        content =
+            @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ValidationErrorResponse.class))),
+    @ApiResponse(
+        responseCode = "404",
+        description = "指定した設備またはユーザーが存在しない",
+        content =
+            @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ApiErrorResponse.class)))
   })
   public InspectionResponse save(@Valid @RequestBody InspectionRequest request) {
     return inspectionService.save(request);
@@ -60,8 +82,20 @@ public class InspectionController {
   @Operation(summary = "点検を更新する")
   @ApiResponses({
     @ApiResponse(responseCode = "200", description = "点検の更新に成功"),
-    @ApiResponse(responseCode = "400", description = "入力値が不正"),
-    @ApiResponse(responseCode = "404", description = "指定した点検、設備またはユーザーが存在しない")
+    @ApiResponse(
+        responseCode = "400",
+        description = "入力値が不正",
+        content =
+            @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ValidationErrorResponse.class))),
+    @ApiResponse(
+        responseCode = "404",
+        description = "指定した点検、設備またはユーザーが存在しない",
+        content =
+            @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ApiErrorResponse.class)))
   })
   public InspectionResponse update(
       @PathVariable Long id, @Valid @RequestBody InspectionRequest request) {
@@ -73,7 +107,13 @@ public class InspectionController {
   @Operation(summary = "点検を削除する")
   @ApiResponses({
     @ApiResponse(responseCode = "204", description = "点検の削除に成功"),
-    @ApiResponse(responseCode = "404", description = "指定した点検が存在しない")
+    @ApiResponse(
+        responseCode = "404",
+        description = "指定した点検が存在しない",
+        content =
+            @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ApiErrorResponse.class)))
   })
   public void delete(@PathVariable Long id) {
     inspectionService.delete(id);
