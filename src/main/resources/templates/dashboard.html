@@ -3,6 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <title>ダッシュボード</title>
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}" />
   </head>
   <body>
     <h1>ダッシュボード</h1>
@@ -19,7 +20,6 @@
       <button type="submit">検索</button>
     </form>
     <h2>設備一覧</h2>
-
     <table border="1" th:unless="${#lists.isEmpty(equipmentList)}">
       <thead>
         <tr>
@@ -37,9 +37,16 @@
           <td th:text="${equipment.manufacturer}"></td>
           <td th:text="${equipment.location}"></td>
           <td>
-            <a th:href="@{/equipment/{id}/inspections/new(id=${equipment.id})}">
-              点検する
-            </a>
+            <div class="action-links">
+              <a
+                th:href="@{/equipment/{id}/inspections/new(id=${equipment.id})}"
+              >
+                点検する
+              </a>
+              <a th:href="@{/equipment/{id}/inspections(id=${equipment.id})}">
+                履歴
+              </a>
+            </div>
           </td>
         </tr>
       </tbody>
