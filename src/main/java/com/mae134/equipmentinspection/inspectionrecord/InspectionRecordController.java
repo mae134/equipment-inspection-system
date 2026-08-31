@@ -169,4 +169,33 @@ public class InspectionRecordController {
     model.addAttribute("inspectionItems", inspectionItems);
     model.addAttribute("currentUser", currentUser);
   }
+
+  @GetMapping("/equipment/{equipmentId}/inspections")
+  public String showInspectionHistory(@PathVariable Long equipmentId, Model model) {
+
+    EquipmentResponse equipment =
+        equipmentService
+            .findById(equipmentId)
+            .orElseThrow(
+                () -> new ResourceNotFoundException("Equipment not found: " + equipmentId));
+
+    List<InspectionHistoryResponse> inspectionHistory =
+        inspectionRecordService.findHistoryByEquipmentId(equipmentId);
+
+    model.addAttribute("equipment", equipment);
+    model.addAttribute("inspectionHistory", inspectionHistory);
+
+    return "inspection-history";
+  }
+
+  @GetMapping("/inspections/{inspectionId}")
+  public String showInspectionHistoryDetail(@PathVariable Long inspectionId, Model model) {
+
+    InspectionHistoryDetailResponse detail =
+        inspectionRecordService.findHistoryDetail(inspectionId);
+
+    model.addAttribute("detail", detail);
+
+    return "inspection-history-detail";
+  }
 }
