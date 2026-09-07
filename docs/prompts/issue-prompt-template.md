@@ -163,6 +163,9 @@ If authentication, permissions, or required repository access is insufficient, s
 ## Output Rules
 
 - Write the Issue title and Issue body in Japanese.
+- Do not prefix the Issue title with a Conventional Commits type or other work-category prefix.
+- Do not use prefixes such as `feat:`, `fix:`, `docs:`, `refactor:`, `test:`, or `chore:` in the Issue title.
+- Write the Issue title as a concise description of the work itself.
 - Return the draft as Markdown.
 - Keep the Issue title separate from the Issue body.
 - Do not include an Issue number in a new Issue body; GitHub assigns it during creation.
