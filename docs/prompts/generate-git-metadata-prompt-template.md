@@ -25,6 +25,7 @@ Generate Pull Request Title
 - Write the branch name, commit message, and explanations in English.
 - Generate the Pull Request title in Japanese.
 - Use the GitHub Issue as the source of truth for the work category and branch name.
+- GitHub Issue titles must not use Conventional Commits prefixes or other work-category prefixes.
 - Use the completed implementation and changed files as the source of truth for the commit message and Pull Request title.
 - Use the same work category across the branch name, commit message, and Pull Request title.
 - Do not invent implementation details.
@@ -38,13 +39,13 @@ Generate Pull Request Title
 
 Use the following category mapping:
 
-| Work Type | Branch Prefix | Commit / Pull Request Prefix |
-|-----------|---------------|--------------------------------|
-| Feature | `feature/` | `feat:` |
-| Documentation | `docs/` | `docs:` |
-| Bug Fix | `fix/` | `fix:` |
-| Refactoring | `refactor/` | `refactor:` |
-| Maintenance | `chore/` | `chore:` |
+| Work Type     | Branch Prefix | Commit / Pull Request Prefix |
+| ------------- | ------------- | ---------------------------- |
+| Feature       | `feature/`    | `feat:`                      |
+| Documentation | `docs/`       | `docs:`                      |
+| Bug Fix       | `fix/`        | `fix:`                       |
+| Refactoring   | `refactor/`   | `refactor:`                  |
+| Maintenance   | `chore/`      | `chore:`                     |
 
 ## Phase 1: Before Implementation
 
@@ -62,6 +63,7 @@ Generate the initial Git metadata from the GitHub Issue.
 2. Generate a branch name.
 3. Report the corresponding Conventional Commits prefix.
 4. Do not generate a final commit message or Pull Request title.
+5. Treat the GitHub Issue title as having no Conventional Commits prefix or other work-category prefix, and do not add one.
 
 ### Output Format
 
