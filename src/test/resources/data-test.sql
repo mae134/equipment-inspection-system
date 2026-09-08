@@ -1,0 +1,102 @@
+INSERT INTO equipment (
+  equipment_code,
+  name,
+  manufacturer,
+  model,
+  location,
+  installed_date,
+  inspection_cycle_days,
+  description,
+  active,
+  created_at,
+  updated_at
+) VALUES (
+  'EQ-001',
+  'モーター設備A',
+  'テスト製作所',
+  'MTR-100',
+  '第1工場',
+  '2025-01-15',
+  30,
+  '画面動作確認用',
+  TRUE,
+  CURRENT_TIMESTAMP,
+  CURRENT_TIMESTAMP
+);
+
+INSERT INTO equipment_inspection_item (
+  id,
+  equipment_id,
+  name,
+  type,
+  unit,
+  min_value,
+  max_value,
+  normal_boolean_value,
+  description,
+  display_order,
+  active,
+  created_at,
+  updated_at
+) VALUES
+(
+  1,
+  1,
+  'モーター温度',
+  'NUMERIC',
+  '℃',
+  0,
+  80,
+  NULL,
+  'モーター表面温度',
+  1,
+  TRUE,
+  CURRENT_TIMESTAMP,
+  CURRENT_TIMESTAMP
+),
+(
+  2,
+  1,
+  '油漏れ',
+  'BOOLEAN',
+  NULL,
+  NULL,
+  NULL,
+  FALSE,
+  '油漏れの有無を確認する',
+  2,
+  TRUE,
+  CURRENT_TIMESTAMP,
+  CURRENT_TIMESTAMP
+);
+
+INSERT INTO users (
+    id,
+    name,
+    email,
+    password_hash,
+    role,
+    active,
+    created_at,
+    updated_at
+) VALUES
+(
+    1,
+    'テスト点検者',
+    'inspector@example.com',
+    '$2a$10$xOtqNjmCryrB6.VOOePjjuluyKA94M4PFTcVIUFYx1lWV81gpz2OC',
+    'INSPECTOR',
+    TRUE,
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP
+),
+(
+    2,
+    'テスト管理者',
+    'admin@example.com',
+    '$2a$10$xOtqNjmCryrB6.VOOePjjuluyKA94M4PFTcVIUFYx1lWV81gpz2OC',
+    'ADMIN',
+    TRUE,
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP
+);

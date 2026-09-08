@@ -22,10 +22,10 @@ INSERT INTO equipment (
   TRUE,
   CURRENT_TIMESTAMP,
   CURRENT_TIMESTAMP
-);
+)
+ON CONFLICT (equipment_code) DO NOTHING;
 
 INSERT INTO equipment_inspection_item (
-  id,
   equipment_id,
   name,
   type,
@@ -38,10 +38,9 @@ INSERT INTO equipment_inspection_item (
   active,
   created_at,
   updated_at
-) VALUES
-(
-  1,
-  1,
+)
+SELECT
+  e.id,
   'モーター温度',
   'NUMERIC',
   '℃',
@@ -53,10 +52,31 @@ INSERT INTO equipment_inspection_item (
   TRUE,
   CURRENT_TIMESTAMP,
   CURRENT_TIMESTAMP
-),
-(
-  2,
-  1,
+FROM equipment e
+WHERE e.equipment_code = 'EQ-001'
+  AND NOT EXISTS (
+    SELECT 1
+    FROM equipment_inspection_item i
+    WHERE i.equipment_id = e.id
+      AND i.name = 'モーター温度'
+  );
+
+  INSERT INTO equipment_inspection_item (
+  equipment_id,
+  name,
+  type,
+  unit,
+  min_value,
+  max_value,
+  normal_boolean_value,
+  description,
+  display_order,
+  active,
+  created_at,
+  updated_at
+)
+SELECT
+  e.id,
   '油漏れ',
   'BOOLEAN',
   NULL,
@@ -68,35 +88,40 @@ INSERT INTO equipment_inspection_item (
   TRUE,
   CURRENT_TIMESTAMP,
   CURRENT_TIMESTAMP
-);
+FROM equipment e
+WHERE e.equipment_code = 'EQ-001'
+  AND NOT EXISTS (
+    SELECT 1
+    FROM equipment_inspection_item i
+    WHERE i.equipment_id = e.id
+      AND i.name = '油漏れ'
+  );
 
 INSERT INTO users (
-    id,
-    name,
-    email,
-    password_hash,
-    role,
-    active,
-    created_at,
-    updated_at
+  name,
+  email,
+  password_hash,
+  role,
+  active,
+  created_at,
+  updated_at
 ) VALUES
 (
-    1,
-    'テスト点検者',
-    'inspector@example.com',
-    '$2a$10$xOtqNjmCryrB6.VOOePjjuluyKA94M4PFTcVIUFYx1lWV81gpz2OC',
-    'INSPECTOR',
-    TRUE,
-    CURRENT_TIMESTAMP,
-    CURRENT_TIMESTAMP
+  'テスト点検者',
+  'inspector@example.com',
+  '$2a$10$xOtqNjmCryrB6.VOOePjjuluyKA94M4PFTcVIUFYx1lWV81gpz2OC',
+  'INSPECTOR',
+  TRUE,
+  CURRENT_TIMESTAMP,
+  CURRENT_TIMESTAMP
 ),
 (
-    2,
-    'テスト管理者',
-    'admin@example.com',
-    '$2a$10$xOtqNjmCryrB6.VOOePjjuluyKA94M4PFTcVIUFYx1lWV81gpz2OC',
-    'ADMIN',
-    TRUE,
-    CURRENT_TIMESTAMP,
-    CURRENT_TIMESTAMP
-);
+  'テスト管理者',
+  'admin@example.com',
+  '$2a$10$xOtqNjmCryrB6.VOOePjjuluyKA94M4PFTcVIUFYx1lWV81gpz2OC',
+  'ADMIN',
+  TRUE,
+  CURRENT_TIMESTAMP,
+  CURRENT_TIMESTAMP
+)
+ON CONFLICT (email) DO NOTHING;
