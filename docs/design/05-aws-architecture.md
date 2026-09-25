@@ -412,13 +412,29 @@ AWS Shield Standardによる基本的なDDoS保護を利用する。
 ### 14.2 AWS WAF
 
 ALBへAWS WAFを関連付ける。
+Web ACL: equipment-inspection-web-acl
+保護対象: equipment-inspection-alb
 
 ### 14.3 Rate-based Rule
 
 大量のHTTPリクエストによる負荷やコスト増加を抑制するため、Rate-based
 Ruleを設定する。
 
-具体的なRate Limit値は構築時に決定する。
+Rule: rate-limit-per-ip
+Action: Block
+集約キー: Source IP
+Evaluation window: 5 minutes
+Rate Limit: 500 requests / 5 minutes / IP
+
+#### 採用理由
+
+通常のポートフォリオ閲覧を妨げない余裕を確保しつつ、単一IPからの短時間の大量アクセスを制限するため。
+
+#### 動作確認
+
+通常アクセスでSpring Bootのログイン画面が表示されることを確認。
+テスト時にRate Limitを一時的に引き下げ、閾値超過後にWAFからHTTP 403が返されることを確認。
+確認後、Rate Limitを500 requests / 5 minutes / IPへ戻した。
 
 ### 14.4 Auto Scaling制限
 
@@ -729,7 +745,6 @@ AWSアカウントを先に作成して試行錯誤するのではなく、ロ�
 - ALB Health Check間隔・閾値
 - CloudWatch Logs保持期間
 - CloudWatch Alarmの監視対象・閾値
-- WAF Rate-based Ruleの具体的な制限値
 - Cost Anomaly Detectionの具体的な通知・判定条件
 - コスト緊急停止処理の具体的な実装
 - 緊急停止後の復旧手順
