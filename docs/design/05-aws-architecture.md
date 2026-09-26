@@ -273,6 +273,45 @@ Taskへの通信はVPC内部通信とする。
 
 HTTP（80）へのアクセスはHTTPS（443）へリダイレクトする。
 
+### 9.6 構築結果
+
+独自ドメイン `kdevnest.com` を使用し、Route 53 / ACM / ALBによる
+HTTPS公開環境を構築した。
+
+構成:
+
+Internet
+|
+| HTTP : 80
+v
+ALB
+|
+| 301 Redirect
+v
+HTTPS : 443
+|
+| ACM TLS Certificate
+v
+ALB
+|
+| HTTP : 8080
+v
+ECS / Fargate
+|
+v
+RDS PostgreSQL
+
+確認結果:
+
+- Route 53で `kdevnest.com` がALBへ名前解決されることを確認
+- ACM証明書のDNS Validationが完了していることを確認
+- ALB HTTPS :443 ListenerにACM証明書を設定
+- HTTP :80へのアクセスがHTTPS :443へ301リダイレクトされることを確認
+- `https://kdevnest.com/login` がHTTP 200を返すことを確認
+- ブラウザでTLS証明書が正常に認識されることを確認
+- HTTPS化後もTarget GroupのECS TaskがHealthyであることを確認
+- HTTPS経由で点検記録を登録し、RDSへの読み書きが正常に行えることを確認
+
 ---
 
 ## 10. Security Group設計
