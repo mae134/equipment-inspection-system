@@ -74,3 +74,50 @@ resource "aws_ecs_task_definition" "app" {
     cpu_architecture        = "X86_64"
   }
 }
+
+resource "aws_ecs_service" "app" {
+  name                  = "equipment-inspection-service"
+  cluster               = aws_ecs_cluster.main.id
+  task_definition       = "${aws_ecs_task_definition.app.family}:${aws_ecs_task_definition.app.revision}"
+  desired_count         = 0
+  wait_for_steady_state = false
+
+  capacity_provider_strategy {
+    capacity_provider = "FARGATE"
+    weight            = 1
+    base              = 0
+  }
+
+  network_configuration {
+    subnets = [
+      aws_subnet.public_a.id,
+      aws_subnet.public_c.id
+    ]
+
+    security_groups = [
+      aws_security_group.ecs.id
+    ]
+
+    assign_public_ip = true
+  }
+
+  load_balancer {
+    target_group_arn = aws_lb_target_group.app.arn
+    container_name   = "equipment-inspection-app"
+    container_port   = 8080
+  }
+
+  deployment_minimum_healthy_percent = 100
+  deployment_maximum_percent         = 200
+
+  deployment_circuit_breaker {
+    enable   = true
+    rollback = true
+  }
+
+  health_check_grace_period_seconds = 0
+  enable_ecs_managed_tags           = true
+  enable_execute_command            = false
+  propagate_tags                    = "NONE"
+  availability_zone_rebalancing     = "ENABLED"
+}
