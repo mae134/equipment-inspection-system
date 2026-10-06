@@ -34,9 +34,20 @@ build/
 
 # Node.js
 node_modules/
-.env
 
 # Terraform
 **/.terraform/*
 **/*.tfstate
 **/*.tfstate.*
+
+# Terraform variable files (may contain secrets)
+**/*.tfvars
+**/*.tfvars.json
+
+# Terraform CLI config / crash logs
+**/crash.log
+**/crash.*.log
+
+# Environment variables
+.env
+.env.*
