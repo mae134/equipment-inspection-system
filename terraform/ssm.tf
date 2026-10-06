@@ -10,3 +10,12 @@ resource "aws_ssm_parameter" "db_username" {
   type  = "String"
   value = aws_db_instance.main.username
 }
+
+resource "aws_ssm_parameter" "db_password" {
+  name        = "/equipment-inspection/prod/db/password"
+  description = "RDS PostgreSQL password for equipment inspection application"
+  type        = "SecureString"
+
+  value_wo         = ephemeral.random_password.db.result
+  value_wo_version = 2
+}

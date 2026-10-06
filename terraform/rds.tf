@@ -50,4 +50,7 @@ resource "aws_db_instance" "main" {
   ca_cert_identifier = "rds-ca-rsa2048-g1"
 
   skip_final_snapshot = true
+
+  password_wo         = ephemeral.random_password.db.result
+  password_wo_version = 2
 }
