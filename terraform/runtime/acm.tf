@@ -4,7 +4,7 @@ resource "aws_acm_certificate" "main" {
 }
 
 resource "aws_route53_record" "acm_validation" {
-  zone_id = aws_route53_zone.main.zone_id
+  zone_id = data.aws_route53_zone.main.zone_id
 
   name = tolist(
     aws_acm_certificate.main.domain_validation_options
