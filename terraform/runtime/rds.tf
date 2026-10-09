@@ -11,6 +11,8 @@ resource "aws_db_subnet_group" "main" {
 resource "aws_db_instance" "main" {
   identifier = "equipment-inspection-db"
 
+  snapshot_identifier = var.db_snapshot_identifier
+
   engine         = "postgres"
   engine_version = "18.3"
   instance_class = "db.t4g.micro"
@@ -20,8 +22,9 @@ resource "aws_db_instance" "main" {
   storage_type          = "gp2"
   storage_encrypted     = true
 
-  db_name  = "equipment_inspection"
-  username = "postgres"
+  db_name = var.db_snapshot_identifier == null ? "equipment_inspection" : null
+
+  username = var.db_snapshot_identifier == null ? "postgres" : null
   port     = 5432
 
   db_subnet_group_name = aws_db_subnet_group.main.name
