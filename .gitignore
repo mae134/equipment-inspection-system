@@ -39,6 +39,7 @@ node_modules/
 **/.terraform/*
 **/*.tfstate
 **/*.tfstate.*
+*.tfplan
 
 # Terraform variable files (may contain secrets)
 **/*.tfvars
