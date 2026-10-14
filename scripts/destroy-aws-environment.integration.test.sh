@@ -11,21 +11,10 @@ MOCK_BIN="${TEST_DIR}/bin"
 mkdir -p "$MOCK_BIN"
 
 # AWS CLIのモック
-cat > "${MOCK_BIN}/aws" <<'EOF'
-#!/usr/bin/env bash
-set -euo pipefail
-
-if [[ "$1" == "sts" && "$2" == "get-caller-identity" ]]; then
-  printf '%s\n' '{"Account":"339741260090","Arn":"arn:aws:sts::339741260090:assumed-role/terraform-execution-role/test"}'
-  exit 0
-fi
-
-echo "Unexpected AWS command: $*" >&2
-exit 1
-EOF
+cp "${SCRIPT_DIR}/test-helpers/mock-aws.sh" "${MOCK_BIN}/aws"
 
 # Terraformのモック
-cat > "${MOCK_BIN}/terraform" <<'EOF'
+cat >"${MOCK_BIN}/terraform" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 
@@ -60,8 +49,8 @@ export MOCK_LOG="${TEST_DIR}/terraform.log"
 actual_status=0
 
 printf 'NO\n' | PATH="${MOCK_BIN}:$PATH" \
-  bash "$SCRIPT_FILE" > "${TEST_DIR}/output.log" 2>&1 \
-  || actual_status=$?
+  bash "$SCRIPT_FILE" >"${TEST_DIR}/output.log" 2>&1 ||
+  actual_status=$?
 
 if [[ "$actual_status" -eq 0 ]]; then
   echo "FAIL: Script unexpectedly succeeded without approval."
@@ -82,46 +71,19 @@ fi
 echo "PASS: Terraform apply was not called without approval."
 
 # 承認後の正常系テスト（RDS available）
-cat > "${MOCK_BIN}/aws" <<'EOF'
-#!/usr/bin/env bash
-set -euo pipefail
-
-case "$1 $2" in
-  "sts get-caller-identity")
-    printf '%s\n' '{"Account":"339741260090","Arn":"arn:aws:sts::339741260090:assumed-role/terraform-execution-role/test"}'
-    ;;
-  "rds describe-db-instances")
-    echo "available"
-    echo "RDS_DESCRIBED" >> "$MOCK_LOG"
-    ;;
-  "rds create-db-snapshot")
-    echo "SNAPSHOT_CREATED" >> "$MOCK_LOG"
-    ;;
-  "rds wait")
-    if [[ "${3:-}" == "db-snapshot-available" ]]; then
-      echo "SNAPSHOT_AVAILABLE" >> "$MOCK_LOG"
-    else
-      echo "Unexpected RDS waiter: $*" >&2
-      exit 1
-    fi
-    ;;
-  *)
-    echo "Unexpected AWS command: $*" >&2
-    exit 1
-    ;;
-esac
-EOF
-
+cp "${SCRIPT_DIR}/test-helpers/mock-aws.sh" "${MOCK_BIN}/aws"
 chmod +x "${MOCK_BIN}/aws"
 
+export MOCK_RDS_STATUS="available"
+
 # 正常系のログを初期化
-: > "$MOCK_LOG"
+: >"$MOCK_LOG"
 
 actual_status=0
 
 printf 'DESTROY\n' | PATH="${MOCK_BIN}:$PATH" \
-  bash "$SCRIPT_FILE" > "${TEST_DIR}/approved.log" 2>&1 \
-  || actual_status=$?
+  bash "$SCRIPT_FILE" >"${TEST_DIR}/approved.log" 2>&1 ||
+  actual_status=$?
 
 if [[ "$actual_status" -ne 0 ]]; then
   echo "FAIL: Approved destroy workflow failed."
@@ -145,39 +107,20 @@ fi
 echo "PASS: Snapshot was created and completed before Terraform apply."
 
 # 異常系テスト：スナップショット作成失敗
-cat > "${MOCK_BIN}/aws" <<'EOF'
-#!/usr/bin/env bash
-set -euo pipefail
-
-case "$1 $2" in
-  "sts get-caller-identity")
-    printf '%s\n' '{"Account":"339741260090","Arn":"arn:aws:sts::339741260090:assumed-role/terraform-execution-role/test"}'
-    ;;
-  "rds describe-db-instances")
-    echo "available"
-    ;;
-  "rds create-db-snapshot")
-    echo "SNAPSHOT_CREATE_FAILED" >> "$MOCK_LOG"
-    echo "Simulated snapshot creation failure" >&2
-    exit 1
-    ;;
-  *)
-    echo "Unexpected AWS command: $*" >&2
-    exit 1
-    ;;
-esac
-EOF
-
+cp "${SCRIPT_DIR}/test-helpers/mock-aws.sh" "${MOCK_BIN}/aws"
 chmod +x "${MOCK_BIN}/aws"
 
+export MOCK_RDS_STATUS="available"
+export MOCK_SNAPSHOT_RESULT="failure"
+
 # 前のテストのログを初期化
-: > "$MOCK_LOG"
+: >"$MOCK_LOG"
 
 actual_status=0
 
 printf 'DESTROY\n' | PATH="${MOCK_BIN}:$PATH" \
-  bash "$SCRIPT_FILE" > "${TEST_DIR}/snapshot-failure.log" 2>&1 \
-  || actual_status=$?
+  bash "$SCRIPT_FILE" >"${TEST_DIR}/snapshot-failure.log" 2>&1 ||
+  actual_status=$?
 
 if [[ "$actual_status" -eq 0 ]]; then
   echo "FAIL: Destroy succeeded despite snapshot creation failure."
@@ -196,56 +139,22 @@ fi
 
 echo "PASS: Terraform apply was blocked after snapshot creation failure."
 
+unset MOCK_SNAPSHOT_RESULT
+
 # RDS停止状態の正常系テスト
-cat > "${MOCK_BIN}/aws" <<'EOF'
-#!/usr/bin/env bash
-set -euo pipefail
-
-case "$1 $2" in
-  "sts get-caller-identity")
-    printf '%s\n' '{"Account":"339741260090","Arn":"arn:aws:sts::339741260090:assumed-role/terraform-execution-role/test"}'
-    ;;
-  "rds describe-db-instances")
-    echo "stopped"
-    echo "RDS_STOPPED" >> "$MOCK_LOG"
-    ;;
-  "rds start-db-instance")
-    echo "RDS_STARTED" >> "$MOCK_LOG"
-    ;;
-  "rds wait")
-    case "${3:-}" in
-      db-instance-available)
-        echo "RDS_AVAILABLE" >> "$MOCK_LOG"
-        ;;
-      db-snapshot-available)
-        echo "SNAPSHOT_AVAILABLE" >> "$MOCK_LOG"
-        ;;
-      *)
-        echo "Unexpected RDS waiter: $*" >&2
-        exit 1
-        ;;
-    esac
-    ;;
-  "rds create-db-snapshot")
-    echo "SNAPSHOT_CREATED" >> "$MOCK_LOG"
-    ;;
-  *)
-    echo "Unexpected AWS command: $*" >&2
-    exit 1
-    ;;
-esac
-EOF
-
+cp "${SCRIPT_DIR}/test-helpers/mock-aws.sh" "${MOCK_BIN}/aws"
 chmod +x "${MOCK_BIN}/aws"
 
+export MOCK_RDS_STATUS="stopped"
+
 # 前のテスト結果を初期化
-: > "$MOCK_LOG"
+: >"$MOCK_LOG"
 
 actual_status=0
 
 printf 'DESTROY\n' | PATH="${MOCK_BIN}:$PATH" \
-  bash "$SCRIPT_FILE" > "${TEST_DIR}/rds-stopped.log" 2>&1 \
-  || actual_status=$?
+  bash "$SCRIPT_FILE" >"${TEST_DIR}/rds-stopped.log" 2>&1 ||
+  actual_status=$?
 
 if [[ "$actual_status" -ne 0 ]]; then
   echo "FAIL: Destroy workflow failed for stopped RDS."
@@ -267,41 +176,22 @@ fi
 
 echo "PASS: Stopped RDS was started before snapshot and Terraform apply."
 
+unset MOCK_RDS_STATUS
+
 # 異常系テスト：RDSが存在しない場合
-cat > "${MOCK_BIN}/aws" <<'EOF'
-#!/usr/bin/env bash
-set -euo pipefail
-
-case "$1 $2" in
-  "sts get-caller-identity")
-    printf '%s\n' '{"Account":"339741260090","Arn":"arn:aws:sts::339741260090:assumed-role/terraform-execution-role/test"}'
-    ;;
-  "rds describe-db-instances")
-    echo "DBInstanceNotFound: DB instance does not exist" >&2
-    echo "RDS_NOT_FOUND" >> "$MOCK_LOG"
-    exit 255
-    ;;
-  "rds create-db-snapshot"|"rds start-db-instance"|"rds wait")
-    echo "UNEXPECTED_RDS_OPERATION" >> "$MOCK_LOG"
-    exit 1
-    ;;
-  *)
-    echo "Unexpected AWS command: $*" >&2
-    exit 1
-    ;;
-esac
-EOF
-
+cp "${SCRIPT_DIR}/test-helpers/mock-aws.sh" "${MOCK_BIN}/aws"
 chmod +x "${MOCK_BIN}/aws"
 
+export MOCK_RDS_STATUS="not-found"
+
 # 前のテスト結果を初期化
-: > "$MOCK_LOG"
+: >"$MOCK_LOG"
 
 actual_status=0
 
 printf 'DESTROY\n' | PATH="${MOCK_BIN}:$PATH" \
-  bash "$SCRIPT_FILE" > "${TEST_DIR}/rds-not-found.log" 2>&1 \
-  || actual_status=$?
+  bash "$SCRIPT_FILE" >"${TEST_DIR}/rds-not-found.log" 2>&1 ||
+  actual_status=$?
 
 if [[ "$actual_status" -ne 0 ]]; then
   echo "FAIL: Destroy workflow failed when RDS was not found."
@@ -329,48 +219,23 @@ fi
 
 echo "PASS: Missing RDS skipped snapshot and continued Terraform apply."
 
+unset MOCK_RDS_STATUS
+
 # 異常系テスト：スナップショット完了待機に失敗
-cat > "${MOCK_BIN}/aws" <<'EOF'
-#!/usr/bin/env bash
-set -euo pipefail
-
-case "$1 $2" in
-  "sts get-caller-identity")
-    printf '%s\n' '{"Account":"339741260090","Arn":"arn:aws:sts::339741260090:assumed-role/terraform-execution-role/test"}'
-    ;;
-  "rds describe-db-instances")
-    echo "available"
-    echo "RDS_DESCRIBED" >> "$MOCK_LOG"
-    ;;
-  "rds create-db-snapshot")
-    echo "SNAPSHOT_CREATED" >> "$MOCK_LOG"
-    ;;
-  "rds wait")
-    if [[ "${3:-}" == "db-snapshot-available" ]]; then
-      echo "SNAPSHOT_WAIT_FAILED" >> "$MOCK_LOG"
-      echo "Simulated snapshot waiter failure" >&2
-      exit 255
-    fi
-    echo "Unexpected RDS waiter: $*" >&2
-    exit 1
-    ;;
-  *)
-    echo "Unexpected AWS command: $*" >&2
-    exit 1
-    ;;
-esac
-EOF
-
+cp "${SCRIPT_DIR}/test-helpers/mock-aws.sh" "${MOCK_BIN}/aws"
 chmod +x "${MOCK_BIN}/aws"
 
+export MOCK_RDS_STATUS="available"
+export MOCK_SNAPSHOT_RESULT="wait-failure"
+
 # 前のテスト結果を初期化
-: > "$MOCK_LOG"
+: >"$MOCK_LOG"
 
 actual_status=0
 
 printf 'DESTROY\n' | PATH="${MOCK_BIN}:$PATH" \
-  bash "$SCRIPT_FILE" > "${TEST_DIR}/snapshot-wait-failure.log" 2>&1 \
-  || actual_status=$?
+  bash "$SCRIPT_FILE" >"${TEST_DIR}/snapshot-wait-failure.log" 2>&1 ||
+  actual_status=$?
 
 if [[ "$actual_status" -eq 0 ]]; then
   echo "FAIL: Destroy succeeded despite snapshot waiter failure."
@@ -391,41 +256,25 @@ fi
 
 echo "PASS: Terraform apply was blocked after snapshot waiter failure."
 
+unset MOCK_RDS_STATUS
+unset MOCK_SNAPSHOT_RESULT
+
 # 正常系テスト：--skip-snapshot 指定時
-cat > "${MOCK_BIN}/aws" <<'EOF'
-#!/usr/bin/env bash
-set -euo pipefail
-
-case "$1 $2" in
-  "sts get-caller-identity")
-    printf '%s\n' '{"Account":"339741260090","Arn":"arn:aws:sts::339741260090:assumed-role/terraform-execution-role/test"}'
-    ;;
-  "rds describe-db-instances")
-    echo "available"
-    echo "RDS_DESCRIBED" >> "$MOCK_LOG"
-    ;;
-  "rds create-db-snapshot"|"rds start-db-instance"|"rds wait")
-    echo "UNEXPECTED_RDS_OPERATION" >> "$MOCK_LOG"
-    exit 1
-    ;;
-  *)
-    echo "Unexpected AWS command: $*" >&2
-    exit 1
-    ;;
-esac
-EOF
-
+cp "${SCRIPT_DIR}/test-helpers/mock-aws.sh" "${MOCK_BIN}/aws"
 chmod +x "${MOCK_BIN}/aws"
 
+export MOCK_RDS_STATUS="available"
+export MOCK_SKIP_SNAPSHOT="true"
+
 # 未承認では削除されないことを確認
-: > "$MOCK_LOG"
+: >"$MOCK_LOG"
 
 actual_status=0
 
 printf 'NO\n' | PATH="${MOCK_BIN}:$PATH" \
   bash "$SCRIPT_FILE" --skip-snapshot \
-  > "${TEST_DIR}/skip-unapproved.log" 2>&1 \
-  || actual_status=$?
+  >"${TEST_DIR}/skip-unapproved.log" 2>&1 ||
+  actual_status=$?
 
 if [[ "$actual_status" -eq 0 ]]; then
   echo "FAIL: Skip-snapshot succeeded without approval."
@@ -444,14 +293,14 @@ if ! grep -q "Destroy cancelled." "${TEST_DIR}/skip-unapproved.log"; then
 fi
 
 # 承認後はスナップショットなしでApplyされることを確認
-: > "$MOCK_LOG"
+: >"$MOCK_LOG"
 
 actual_status=0
 
 printf 'DESTROY\n' | PATH="${MOCK_BIN}:$PATH" \
   bash "$SCRIPT_FILE" --skip-snapshot \
-  > "${TEST_DIR}/skip-approved.log" 2>&1 \
-  || actual_status=$?
+  >"${TEST_DIR}/skip-approved.log" 2>&1 ||
+  actual_status=$?
 
 if [[ "$actual_status" -ne 0 ]]; then
   echo "FAIL: Approved skip-snapshot workflow failed."
@@ -473,8 +322,11 @@ fi
 
 echo "PASS: Skip-snapshot required approval and bypassed backup."
 
+unset MOCK_RDS_STATUS
+unset MOCK_SKIP_SNAPSHOT
+
 # 正常系テスト：Terraformの削除対象が0件
-cat > "${MOCK_BIN}/terraform" <<'EOF'
+cat >"${MOCK_BIN}/terraform" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 
@@ -502,7 +354,7 @@ EOF
 chmod +x "${MOCK_BIN}/terraform"
 
 # AWSモックは認証確認だけ許可
-cat > "${MOCK_BIN}/aws" <<'EOF'
+cat >"${MOCK_BIN}/aws" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 
@@ -517,15 +369,15 @@ EOF
 
 chmod +x "${MOCK_BIN}/aws"
 
-: > "$MOCK_LOG"
+: >"$MOCK_LOG"
 
 actual_status=0
 
 # 標準入力なしで実行（確認入力を要求しないことも検証）
 PATH="${MOCK_BIN}:$PATH" \
   bash "$SCRIPT_FILE" </dev/null \
-  > "${TEST_DIR}/no-resources.log" 2>&1 \
-  || actual_status=$?
+  >"${TEST_DIR}/no-resources.log" 2>&1 ||
+  actual_status=$?
 
 if [[ "$actual_status" -ne 0 ]]; then
   echo "FAIL: Empty destroy plan did not exit successfully."
@@ -548,7 +400,7 @@ fi
 echo "PASS: Empty destroy plan exited without RDS operations or Terraform apply."
 
 # 異常系テスト：保護対象リソースが削除計画に含まれる
-cat > "${MOCK_BIN}/terraform" <<'EOF'
+cat >"${MOCK_BIN}/terraform" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 
@@ -587,14 +439,14 @@ EOF
 
 chmod +x "${MOCK_BIN}/terraform"
 
-: > "$MOCK_LOG"
+: >"$MOCK_LOG"
 
 actual_status=0
 
 PATH="${MOCK_BIN}:$PATH" \
   bash "$SCRIPT_FILE" </dev/null \
-  > "${TEST_DIR}/protected-resource.log" 2>&1 \
-  || actual_status=$?
+  >"${TEST_DIR}/protected-resource.log" 2>&1 ||
+  actual_status=$?
 
 if [[ "$actual_status" -eq 0 ]]; then
   echo "FAIL: Protected resource deletion was allowed."
@@ -615,7 +467,7 @@ fi
 echo "PASS: Protected resource deletion was blocked."
 
 # 異常系テスト：Terraform Stateに保護対象リソースが存在する
-cat > "${MOCK_BIN}/terraform" <<'EOF'
+cat >"${MOCK_BIN}/terraform" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 
@@ -646,7 +498,7 @@ EOF
 chmod +x "${MOCK_BIN}/terraform"
 
 # AWSモックは認証確認だけ許可
-cat > "${MOCK_BIN}/aws" <<'EOF'
+cat >"${MOCK_BIN}/aws" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 
@@ -661,14 +513,14 @@ EOF
 
 chmod +x "${MOCK_BIN}/aws"
 
-: > "$MOCK_LOG"
+: >"$MOCK_LOG"
 
 actual_status=0
 
 PATH="${MOCK_BIN}:$PATH" \
   bash "$SCRIPT_FILE" </dev/null \
-  > "${TEST_DIR}/protected-state.log" 2>&1 \
-  || actual_status=$?
+  >"${TEST_DIR}/protected-state.log" 2>&1 ||
+  actual_status=$?
 
 if [[ "$actual_status" -eq 0 ]]; then
   echo "FAIL: Protected resource in Terraform State was allowed."
