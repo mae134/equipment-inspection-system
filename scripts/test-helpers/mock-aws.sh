@@ -8,7 +8,26 @@ MOCK_SKIP_SNAPSHOT="${MOCK_SKIP_SNAPSHOT:-false}"
 case "${1:-} ${2:-}" in
 "sts get-caller-identity")
   printf '%s\n' \
-    '{"Account":"339741260090","Arn":"arn:aws:sts::339741260090:assumed-role/terraform-execution-role/test"}'
+    "${MOCK_CALLER_IDENTITY:-{\"Account\":\"339741260090\",\"Arn\":\"arn:aws:sts::339741260090:assumed-role/terraform-execution-role/test\"}}"
+  ;;
+
+"rds describe-db-snapshots")
+  SNAPSHOT_STATUS="${MOCK_RESTORE_SNAPSHOT_STATUS:-available}"
+  SOURCE_DB="${MOCK_RESTORE_SOURCE_DB:-equipment-inspection-db}"
+
+  jq -n \
+    --arg status "$SNAPSHOT_STATUS" \
+    --arg source "$SOURCE_DB" \
+    '{
+      DBSnapshots: [
+        {
+          Status: $status,
+          DBInstanceIdentifier: $source
+        }
+      ]
+    }'
+
+  echo "SNAPSHOT_DESCRIBED" >>"$MOCK_LOG"
   ;;
 
 "rds describe-db-instances")
