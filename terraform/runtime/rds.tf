@@ -24,8 +24,10 @@ resource "aws_db_instance" "main" {
 
   db_name = var.db_snapshot_identifier == null ? "equipment_inspection" : null
 
-  username = var.db_snapshot_identifier == null ? "postgres" : null
-  port     = 5432
+  username            = var.db_snapshot_identifier == null ? "postgres" : null
+  password_wo         = var.db_snapshot_identifier == null ? var.db_password : null
+  password_wo_version = var.db_snapshot_identifier == null ? var.db_password_version : null
+  port                = 5432
 
   db_subnet_group_name = aws_db_subnet_group.main.name
 
@@ -53,7 +55,4 @@ resource "aws_db_instance" "main" {
   ca_cert_identifier = "rds-ca-rsa2048-g1"
 
   skip_final_snapshot = true
-
-  password_wo         = ephemeral.random_password.db.result
-  password_wo_version = 2
 }
