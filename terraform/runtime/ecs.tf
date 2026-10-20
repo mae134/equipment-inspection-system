@@ -120,6 +120,10 @@ resource "aws_ecs_service" "app" {
     rollback = true
   }
 
+  lifecycle {
+    ignore_changes = [desired_count]
+  }
+
   health_check_grace_period_seconds = 0
   enable_ecs_managed_tags           = true
   enable_execute_command            = false
