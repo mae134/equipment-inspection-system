@@ -2,17 +2,22 @@
 
 ## 1. 目的
 
-設備点検管理システムのAWS環境について、未使用時のコストを削減しつつ、
-必要なデータを保持した状態で安全に停止・削除・再構築できる仕組みを設計する。
+設備点検管理システムのAWS環境について、未使用時のコストを削減しつつ、必要なデータを保持して削除・再構築できる仕組みを定義する。
 
-本設計では、AWS環境のバックアップ、削除、再構築、RDS Snapshotからの復元を
-Shell ScriptとTerraformを組み合わせて実行する。
+Shell Script、AWS CLI、Terraformを組み合わせ、以下を実現する。
 
----
+- RDS Manual Snapshotの作成・保持
+- Runtime Resourcesの削除
+- Terraformによる環境再構築
+- RDS Snapshotからの復元、または新規RDS作成
+- アプリケーションの再Build・ECRへのPush
+- ECS起動とALB Target Healthの確認
+
+本設計はIssue #99の実装を基準とする。
 
 ## 2. 基本方針
 
-AWSリソースを以下の2種類に分けて管理する。
+AWSリソースをPersistent ResourcesとRuntime Resourcesに分離する。
 
 ### Persistent Resources
 
@@ -21,357 +26,335 @@ AWSリソースを以下の2種類に分けて管理する。
 - Route53 Hosted Zone
 - RDS Manual Snapshot
 
+Hosted Zoneは`terraform/persistent/`で管理する。
+
+RDS Manual SnapshotはAWS CLIで作成し、Runtime Terraform Stateによる削除対象には含めない。
+
 ### Runtime Resources
 
-必要に応じてTerraformから再構築できるリソース。
+`terraform/runtime/`で管理し、必要に応じて削除・再構築する。
 
 主な対象：
 
-- VPC
-- Subnet
-- Internet Gateway
-- Route Table
-- Security Group
-- ALB
-- Target Group
-- Listener
-- WAF
-- ECS Cluster
-- ECS Service
-- ECS Task Definition
-- RDS DB Instance
-- DB Subnet Group
+- VPC、Subnet、Route Table、Internet Gateway、Security Group
+- ALB、Target Group、Listener、WAF
+- ECS Cluster、Service、Task Definition
+- RDS DB Instance、DB Subnet Group
 - ECR Repository
-- ACM Certificate
-- Route53 Records
+- ACM Certificate、Route53 Records
 - SSM Parameters
 - CloudWatch Logs / Alarms
 - SNS Topic
 - Terraform管理対象のIAM Role / Policy
 - AWS Budget
 
-Runtime ResourcesはAWS環境停止時に削除し、
-再開時にTerraformから再構築する。
-
----
+Terraform実行用のBootstrap IAM RoleはRuntime削除対象に含めない。
 
 ## 3. Route53 Hosted Zoneの管理
 
-`kdevnest.com` のHosted Zoneは環境削除後も保持する。
+`kdevnest.com`のHosted Zoneは環境削除後も保持する。
 
-Hosted Zoneを削除して再作成するとName Serverが変更される可能性があり、
-ドメインレジストラ側でNS設定の変更が必要になるためである。
+Hosted Zoneを削除・再作成するとName Serverが変わる可能性があるため、Runtime ResourcesとはStateを分離する。
 
-そのためHosted ZoneはRuntime ResourcesとはTerraformのライフサイクルを分離する。
-
-想定構成：
+構成：
 
 ```text
 terraform/
 ├── persistent/
-│   └── route53.tf
-│
-├── route53.tf
-├── rds.tf
-├── ecs.tf
-├── alb.tf
-└── ...
+│   └── ...
+└── runtime/
+    ├── ...
+    └── ...
 ```
 
-`persistent/` ではHosted Zoneを管理する。
+Runtime側では既存Hosted Zoneを参照し、Route53 Recordsなどの再構築可能なリソースを管理する。
 
-通常のTerraform構成では既存Hosted Zoneを参照し、
-Route53 Record等のRuntime Resourcesのみを管理する。
-
-既存Hosted ZoneをPersistent管理へ移行する際は、
-AWS上のHosted Zoneを削除・再作成せず、
-Terraform Stateの管理単位のみを変更する。
-
----
+Hosted Zone自体の新規作成・選択はRestoreスクリプトの対象外とする。
 
 ## 4. RDS Backup方針
 
-AWS環境を削除する前にRDS Manual Snapshotを作成する。
-
-Snapshot作成後、AWS上でSnapshotの状態が `available` になったことを確認する。
-
-Snapshot作成または確認に失敗した場合、
-RDSを含むAWS環境の削除処理は実行しない。
+Destroy時は原則としてRDS Manual Snapshotを作成する。
 
 ```text
-RDS
+Human Confirmation
+ ↓
+RDS状態確認・必要に応じて起動
  ↓
 Manual Snapshot作成
  ↓
-available待機
- ↓
-成功確認
- ↓
-AWS環境削除
-```
-
-RDS SnapshotはTerraformによるRuntime Resourcesの削除対象には含めない。
-
-Snapshotの削除は自動化せず、
-不要になったSnapshotをAWS Management Consoleから
-人間が確認した上で削除する。
-
----
-
-## 5. AWS環境削除フロー
-
-`scripts/destroy-aws-environment.sh` を使用する。
-
-想定フロー：
-
-```text
-Preflight Check
- ↓
-AWS Account確認
- ↓
-AWS Region確認
- ↓
-IAM Role確認
- ↓
-対象AWS環境確認
- ↓
-RDS Snapshot作成
- ↓
 Snapshot available待機
- ↓
-Backup成功確認
- ↓
-削除対象 / 保持対象表示
- ↓
-Human Confirmation
  ↓
 TerraformによるRuntime Resources削除
 ```
 
-Snapshot作成・確認に失敗した場合はFail Closedとし、
-破壊的操作を実行しない。
+Snapshot作成またはavailable確認に失敗した場合は、Terraformによる削除へ進まない。
 
-削除実行前には単純な `y/N` ではなく、
-指定文字列の完全一致入力による確認を行う。
+`--skip-snapshot`を指定するとSnapshot作成を省略できる。ただし、既存の復元可能なバックアップを確認した場合などに限定して使用する。
 
-例：
+Snapshotは自動削除しない。不要なSnapshotは保持状況を確認して手動で削除する。
+
+## 5. AWS環境削除フロー
+
+使用スクリプト：
+
+`scripts/aws/destroy-aws-environment.sh`
+
+基本フロー：
 
 ```text
-Type "destroy equipment-inspection" to continue:
+引数・実行環境の確認
+ ↓
+AWS Account / IAM Role確認
+ ↓
+Terraform Runtime Stateの保護対象確認
+ ↓
+Terraform削除計画の安全性確認
+ ↓
+削除内容の確認
+ ↓
+「DESTROY」の完全一致入力
+ ↓
+RDS Manual Snapshot作成・available待機
+   （--skip-snapshot時は省略）
+ ↓
+TerraformによるRuntime Resources削除
 ```
 
----
+確認文字列が一致しない場合は削除を実行しない。
+
+AWSへの変更開始後に異常終了した場合は、既存リソースを自動で削除・巻き戻しせず、Terraform StateとAWSリソースの状態確認を案内する。
 
 ## 6. AWS環境復元フロー
 
-`scripts/restore-aws-environment.sh` を使用する。
+使用スクリプト：
 
-想定フロー：
+`scripts/aws/restore-aws-environment.sh`
+
+基本フロー：
 
 ```text
-Preflight Check
+引数・実行環境の確認
  ↓
-AWS Account / Region / IAM Role確認
+AWS Account / IAM Role確認
  ↓
-既存Runtime Resources確認
+RDS Snapshot確認（Snapshotモード）
  ↓
-Hosted Zone確認・選択
+Terraform Plan作成・安全性確認
  ↓
-RDS Snapshot確認・選択
- ↓
-復元内容確認
+実行承認
  ↓
 Terraform Apply
  ↓
-ECRへDocker Image Push
+RDS Password設定・SSM Parameter同期
  ↓
-ECS/Fargate起動
+Maven JAR Build
  ↓
-SNS Email Subscription再設定
+Docker Image Build
  ↓
-AWS Resource Health確認
+ECR認証・Image Push
  ↓
-HTTPS疎通確認
+ECS Service起動
  ↓
-DBデータ確認
+ECS安定稼働待機
+ ↓
+ALB Target Health確認
 ```
 
-既存Runtime Resourcesとの競合が確認された場合は、
-意図しない環境変更を防ぐため復元処理を中断する。
+Terraform Planに削除・置換操作が含まれる場合は処理を中断する。
 
----
+Restore完了後のHTTPS疎通やDBデータ確認は別途手動で実施する。
 
 ## 7. Hosted Zone / RDS Snapshotの選択
 
-Hosted ZoneおよびRDS Snapshotの状態は `.env` に保存しない。
-
-AWS上の実際の状態をSource of Truthとし、
-AWS CLIから取得する。
-
 ### Hosted Zone
 
-`DOMAIN_NAME` を使用してHosted Zoneを検索する。
+Hosted ZoneはPersistent Terraform Stateで管理する既存のものを使用する。
 
-- 0件：新規Hosted Zone作成
-- 1件：対象を表示して再利用
-- 複数件：人間が明示的に選択
-
-新規Hosted Zoneを作成した場合、
-ドメインレジストラ側のName Server設定変更が必要になる可能性があるため、
-手動確認を行う。
+RestoreスクリプトでのHosted Zone検索・新規作成・対話選択は実装しない。
 
 ### RDS Snapshot
 
-対象RDSの利用可能なManual Snapshotを一覧表示する。
+Restoreでは次のいずれかを明示的に指定する。
 
-利用者は以下から選択する。
+- `--snapshot-id ID`：指定したManual Snapshotから復元
+- `--new`：新規RDSを作成
 
-- 既存Snapshotから復元
-- 新規Databaseを作成
+Snapshotモードでは、指定Snapshotが`available`であり、想定するDB Instanceのものであることを検証する。
 
-複数Snapshotが存在する場合、
-スクリプトが自動的にSnapshotを決定しない。
-
----
+Snapshot一覧の対話選択は実装しない。
 
 ## 8. 環境設定
 
-固定的な環境情報は `.env` から取得する。
+Destroy / Restoreスクリプトでは、主要な実行環境を固定値で管理する。
 
-例：
+- AWS Profile：`terraform-execution`
+- AWS Region：`ap-northeast-1`
+- AWS Account ID：想定アカウントと照合
+- IAM Role：`terraform-execution-role`
+- Terraform Runtime Directory：`terraform/runtime/`
 
-```dotenv
-AWS_PROFILE=terraform-execution
-AWS_REGION=ap-northeast-1
-AWS_ACCOUNT_ID=339741260090
-PROJECT_NAME=equipment-inspection
-DOMAIN_NAME=kdevnest.com
-RDS_IDENTIFIER=equipment-inspection-db
-```
+AWS ProfileとRoleの設定・認証情報はAWS CLI側で管理する。
 
-`.env` は環境識別および安全確認のために使用する。
+Restore時のDB Passwordは`openssl`で生成し、一時的なTerraform変数として渡す。
 
-Hosted ZoneやSnapshotなど、
-AWS上で変化する状態は `.env` には保存しない。
-
----
+Passwordや一時PlanファイルをGit管理対象に含めない。
 
 ## 9. IAM / AWS Account安全確認
 
-Destroy / Restoreの両スクリプトで、
-破壊的操作またはTerraform実行前にAWS実行環境を確認する。
-
-最低限以下を確認する。
+Destroy / Restoreの両スクリプトで、Terraform実行前に以下を確認する。
 
 - AWS Account ID
-- AWS Region
 - AWS CLI Profile
-- 実行中のIAM Role
+- AWS Region
+- IAM Role
 
-想定AccountまたはRoleと一致しない場合は処理を中断する。
+AWS STSで取得したAccount IDとRole ARNが想定値と一致しない場合は処理を中断する。
 
-Terraform実行用IAM RoleはRuntime Resourcesとは別の
-Bootstrap Resourceとして扱い、
-AWS環境削除の対象には含めない。
+AWS CLI ProfileとRegionはスクリプト内で明示する。
 
----
+Terraform実行用IAM RoleはBootstrap Resourceとして保持する。
 
 ## 10. RDS Snapshot復元
 
-Restore時は以下の2種類をサポートする。
+Restoreは以下の2モードをサポートする。
 
 ```text
-Snapshotあり
+--snapshot-id ID
     ↓
-SnapshotからRDSを復元
-
-Snapshotなし
+SnapshotからRDS復元
     ↓
-新規RDSを作成
+RDS Master Password更新
+    ↓
+RDS available待機
+    ↓
+SSM SecureString更新
 ```
 
-Snapshot復元時のDatabase Passwordと
-TerraformのEphemeral Passwordの整合性については、
-実装前に詳細設計を行う。
+```text
+--new
+    ↓
+新規RDS作成
+    ↓
+SSM SecureString更新
+```
 
----
+DB Passwordは`openssl rand -hex 24`で生成する。
+
+Snapshot復元時はRDSのMaster Passwordを生成した値に更新し、利用可能状態を待機する。
+
+その後、ECSが参照するSSM Parameter StoreのPasswordを同期する。
+
+Password設定または同期に失敗した場合はECSを起動しない。
 
 ## 11. ECR / ECS復元
 
-ECR RepositoryはRuntime Resourceとして削除可能とする。
+ECR RepositoryはRuntime ResourceとしてTerraformから再作成する。
 
-Restore時は必要に応じてRepositoryをTerraformから再作成し、
-アプリケーションのDocker Imageを再Build / Pushする。
+Restore時は次の処理を実行する。
 
-Docker ImageがECRに存在することを確認した後、
-ECS/FargateでSpring Boot Applicationを起動する。
+1. Maven Wrapperで`verify`を実行してJARを生成
+2. Docker ImageをBuild
+3. AWS CLIでECR認証情報を取得
+4. Docker Login
+5. ECRへImageをPush
+6. ECS Serviceのdesired countを1に変更
+7. ECS Serviceの安定稼働を待機
+8. ALB Target Healthを確認
 
-ECS Serviceのdesired countとTerraform Stateの整合性を維持する方法については、
-実装前に詳細設計を行う。
+ECR Imageは既存のECS Task Definitionに合わせて`latest`タグを使用する。
 
----
+Terraform側ではECS Serviceをdesired count 0で作成し、起動はAWS CLIで実行する。
+
+ECS Serviceの`desired_count`はTerraformの`ignore_changes`で管理し、CLIによる起動とTerraform Stateの競合を避ける。
+
+Build・認証・Pushのいずれかが失敗した場合はECS起動へ進まない。
 
 ## 12. SNS Email Subscription
 
-SNS TopicはRuntime Resourceとして再作成可能とする。
+SNS TopicはRuntime Resourceとして再作成する。
 
-Email SubscriptionはTerraform管理対象外のため、
-SNS Topic再作成後に既存のセットアップスクリプトを使用して再設定する。
+Email SubscriptionはTerraform管理対象外のため、環境復元後に次の既存スクリプトで手動設定する。
 
----
+`scripts/aws/setup-sns-email-subscription.sh`
+
+購読確認メールの承認も手動で実施する。
+
+Restoreスクリプトには組み込まない。
 
 ## 13. 対話方式
 
-初期実装ではDestroy / Restoreともに対話形式で実行する。
+DestroyとRestoreでは誤操作防止のため、異なる承認方式を採用する。
 
-SnapshotやHosted Zoneなど、
-復元に使用するリソースは利用者が確認・選択する。
+### Destroy
 
-将来的にCI/CD等から実行できるよう、
-コマンドライン引数によるリソース指定や
-非対話モードへ拡張可能な構造を想定する。
+実行時に`DESTROY`の完全一致入力を要求する。
 
-非対話モード自体は本Issueの実装対象外とする。
+オプション：
 
----
+- `--skip-snapshot`
+- `--help`
+
+### Restore
+
+CLI引数で復元対象を指定する。
+
+- `--snapshot-id ID`
+- `--new`
+- `--apply`
+- `--help`
+
+`--apply`を指定しない場合はTerraform Planの確認のみで終了する。
+
+実際にApplyする場合は`--apply`に加え、環境変数`CONFIRM_AWS_RESTORE=YES`を要求する。
+
+SnapshotやHosted Zoneの対話選択は行わない。
 
 ## 14. Fail Safe / Fail Closed
 
-以下の場合は処理を中断する。
+次の場合は処理を中断する。
 
-- AWS Accountが想定と異なる
-- AWS Regionが想定と異なる
-- IAM Roleが想定と異なる
-- AWS CLIによる対象リソース確認に失敗
-- RDS Snapshot作成に失敗
-- RDS Snapshotが `available` にならない
-- 削除対象AWS環境を一意に確認できない
-- Restore時に競合するRuntime Resourcesが存在する
-- Hosted Zone / Snapshotの選択結果を検証できない
+- AWS AccountまたはIAM Roleが想定と異なる
+- 必須コマンドやTerraformディレクトリが存在しない
+- Terraform Stateに保護対象リソースが含まれる
+- Terraform Planの安全性確認に失敗
+- Restore Planに削除・置換操作が含まれる
+- 指定Snapshotが利用不可、または想定DBと一致しない
+- Snapshot作成・待機に失敗
+- RDS Password更新・SSM同期に失敗
+- Maven Build、Docker Build、ECR認証、Image Pushに失敗
+- ECS起動・安定稼働待機に失敗
+- ALB Target Health確認に失敗
 
-不明な状態では破壊的操作を継続しない。
+AWSへの変更開始後に失敗した場合は、自動Rollbackを実施しない。
 
----
+Terraform State、RDS Snapshot、AWSリソースの状態を確認してから再実行する。
 
 ## 15. 復元後確認
 
-Restore完了後、最低限以下を確認する。
+### スクリプトによる自動確認
 
-- TerraformによるAWS Resource作成成功
-- ECS Service / Taskの起動
-- ALB Target Health
-- HTTPSでSpring Boot Applicationへアクセス可能
-- RDSへの接続成功
-- Snapshot復元時は既存Databaseデータが保持されていること
+- Terraform Apply成功
+- RDS PasswordとSSM Parameterの設定処理成功
+- ECR Image Push成功
+- ECS Service安定稼働
+- ALB Target Healthが正常
 
----
+### 手動確認
+
+- `https://kdevnest.com`へのHTTPS疎通
+- Spring Boot Applicationの主要画面
+- RDSへの接続とデータ保持状況
+- SNS Email Subscriptionの再設定・購読確認
+- AWS Billing / Cost Explorerでの課金状況
+
+自動確認の成功だけで、アプリケーション全機能の正常性を保証するものではない。
 
 ## 16. 今後の拡張候補
 
-本Issueでは実装しないが、以下への拡張を可能な構造とする。
+Issue #99の対象外とする。
 
-- CLI引数によるリソース指定
-- 非対話モード
 - CI/CDからの環境復元
 - Snapshot保持世代管理
 - Snapshot削除専用スクリプト
+- HTTPS・DBデータの自動検証
+- ECS ImageへのコミットSHAなどの固定タグ導入

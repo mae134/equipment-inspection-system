@@ -100,3 +100,44 @@ AWS BudgetsおよびCost Anomaly Detectionは、
 
 通知を受信した後に利用状況を確認し、
 必要に応じて本Runbookの手順を実施する。
+
+---
+
+## 7. 長期間使用しない場合の環境削除・復元
+
+本Runbookの第3章は、料金異常発生時にAWSリソースを一時停止するための緊急対応を対象とする。
+
+一方、長期間AWS環境を使用しない場合は、Issue #99で実装した環境削除・復元スクリプトを使用できる。
+
+### 環境削除
+
+```bash
+bash scripts/aws/destroy-aws-environment.sh
+```
+
+AWSアカウント・IAMロール・Terraform State・削除計画の安全性確認後、`DESTROY`の入力を要求する。
+
+原則としてRDS Manual Snapshotを作成し、`available`になったことを確認してからRuntime Resourcesを削除する。
+
+### 環境復元
+
+```bash
+bash scripts/aws/restore-aws-environment.sh \
+  --snapshot-id SNAPSHOT_ID
+```
+
+標準ではTerraform Planの確認のみを行う。
+
+内容を確認した後、`--apply`と`CONFIRM_AWS_RESTORE=YES`を指定して復元する。
+
+復元処理には、Terraformによる再構築、RDS・SSMパスワード設定、ECRへのイメージ登録、ECS起動、ALB Target Health確認が含まれる。
+
+復元後はHTTPS疎通、DBデータ、SNSメール購読の状態を手動で確認する。
+
+### 使い分け
+
+- **緊急停止**：ECS・RDSを一時停止し、短期的な料金増加を抑える。
+- **環境削除**：長期間使用しないRuntime Resourcesを削除し、継続的な料金を削減する。
+- **環境復元**：削除したRuntime Resourcesを再構築してアプリケーションを再稼働する。
+
+詳細は`docs/design/aws-environment-lifecycle.md`を参照する。
