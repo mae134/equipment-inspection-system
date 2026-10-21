@@ -10,9 +10,9 @@ put_db_password_to_ssm() {
       Value: .,
       Overwrite: true
     }' |
-    aws ssm put-parameter \
+    aws_cli_with_secure_json \
+      aws ssm put-parameter \
       --profile "$AWS_PROFILE" \
       --region "$AWS_REGION" \
-      --cli-input-json file:///dev/stdin \
       --output json >/dev/null
 }

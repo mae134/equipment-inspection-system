@@ -64,6 +64,7 @@ fi
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 RUNTIME_DIR="${PROJECT_ROOT}/terraform/runtime"
+source "${SCRIPT_DIR}/../lib/aws-cli-json.sh"
 source "${SCRIPT_DIR}/../lib/terraform-password.sh"
 source "${SCRIPT_DIR}/../lib/rds-password.sh"
 source "${SCRIPT_DIR}/../lib/ssm-password.sh"

@@ -12,13 +12,26 @@ cat >"${TEST_DIR}/bin/aws" <<'EOF'
 set -euo pipefail
 
 [[ "$*" == *"rds modify-db-instance"* ]] || exit 1
-[[ "$*" == *"--cli-input-json file:///dev/stdin"* ]] || exit 1
+
+json_file=""
+
+while (($#)); do
+  if [[ "$1" == "--cli-input-json" ]]; then
+    json_file="${2#file://}"
+    break
+  fi
+  shift
+done
+
+[[ "$json_file" == /dev/shm/aws-cli-json.* ]] || exit 1
+[[ -f "$json_file" ]] || exit 1
+[[ "$(stat -c '%a' "$json_file")" == "600" ]] || exit 1
 
 jq -e '
   .DBInstanceIdentifier == "equipment-inspection-db" and
   .ApplyImmediately == true and
   (.MasterUserPassword | length == 48)
-' >/dev/null
+' "$json_file" >/dev/null
 
 printf '{}\n'
 EOF
@@ -30,6 +43,7 @@ AWS_PROFILE="terraform-execution"
 AWS_REGION="ap-northeast-1"
 DB_INSTANCE_IDENTIFIER="equipment-inspection-db"
 
+source "${SCRIPT_DIR}/../../lib/aws-cli-json.sh"
 source "${SCRIPT_DIR}/../../lib/rds-password.sh"
 
 TEST_PASSWORD="$(printf '%048d' 0)"

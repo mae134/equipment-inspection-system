@@ -102,8 +102,45 @@ case "${1:-} ${2:-}" in
     exit 1
   fi
 
-  # AWS CLIのJSON入力を読み取り、パスワードのハッシュ値を記録
-  rds_input="$(cat)"
+  # AWS CLIのJSON入力ファイルを検証して読み込む
+  rds_json_file=""
+
+  while (($#)); do
+    case "$1" in
+    --cli-input-json)
+      [[ $# -ge 2 ]] || {
+        echo "ERROR: Missing RDS CLI input value." >&2
+        exit 1
+      }
+      rds_json_file="${2#file://}"
+      break
+      ;;
+    --cli-input-json=*)
+      rds_json_file="${1#--cli-input-json=file://}"
+      break
+      ;;
+    *)
+      shift
+      ;;
+    esac
+  done
+
+  if [[ "$rds_json_file" != /dev/shm/aws-cli-json.* ]]; then
+    echo "ERROR: Unexpected RDS CLI input." >&2
+    exit 1
+  fi
+
+  if [[ ! -f "$rds_json_file" ]]; then
+    echo "ERROR: RDS JSON file does not exist." >&2
+    exit 1
+  fi
+
+  if [[ "$(stat -c '%a' "$rds_json_file")" != "600" ]]; then
+    echo "ERROR: RDS JSON file permissions are not 600." >&2
+    exit 1
+  fi
+
+  rds_input="$(cat "$rds_json_file")"
 
   if ! jq -e '
     .DBInstanceIdentifier == "equipment-inspection-db" and
@@ -151,12 +188,24 @@ case "${1:-} ${2:-}" in
     esac
   done
 
-  if [[ "$cli_input" != "file:///dev/stdin" ]]; then
+  if [[ "$cli_input" != file:///dev/shm/aws-cli-json.* ]]; then
     echo "ERROR: Unexpected SSM CLI input." >&2
     exit 1
   fi
 
-  ssm_input="$(cat)"
+  ssm_json_file="${cli_input#file://}"
+
+  if [[ ! -f "$ssm_json_file" ]]; then
+    echo "ERROR: SSM JSON file does not exist." >&2
+    exit 1
+  fi
+
+  if [[ "$(stat -c '%a' "$ssm_json_file")" != "600" ]]; then
+    echo "ERROR: SSM JSON file permissions are not 600." >&2
+    exit 1
+  fi
+
+  ssm_input="$(cat "$ssm_json_file")"
 
   if ! jq -e '
     .Name == "/equipment-inspection/prod/db/password" and
@@ -215,7 +264,7 @@ case "${1:-} ${2:-}" in
   printf '{}\n'
   ;;
 
-  "ecr get-login-password")
+"ecr get-login-password")
   echo "ECR_LOGIN_PASSWORD_REQUESTED" >>"$MOCK_LOG"
 
   if [[ "${MOCK_ECR_AUTH_FAIL:-false}" == true ]]; then
