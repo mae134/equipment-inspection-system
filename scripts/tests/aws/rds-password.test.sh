@@ -30,7 +30,7 @@ AWS_PROFILE="terraform-execution"
 AWS_REGION="ap-northeast-1"
 DB_INSTANCE_IDENTIFIER="equipment-inspection-db"
 
-source "${SCRIPT_DIR}/lib/rds-password.sh"
+source "${SCRIPT_DIR}/../../lib/rds-password.sh"
 
 TEST_PASSWORD="$(printf '%048d' 0)"
 

@@ -2,7 +2,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SCRIPT_FILE="${SCRIPT_DIR}/destroy-aws-environment.sh"
+SCRIPT_FILE="${SCRIPT_DIR}/../../aws/destroy-aws-environment.sh"
 
 TEST_DIR="$(mktemp -d)"
 trap 'rm -rf "$TEST_DIR"' EXIT
@@ -11,7 +11,7 @@ MOCK_BIN="${TEST_DIR}/bin"
 mkdir -p "$MOCK_BIN"
 
 # AWS CLIのモック
-cp "${SCRIPT_DIR}/test-helpers/mock-aws.sh" "${MOCK_BIN}/aws"
+cp "${SCRIPT_DIR}/../helpers/mock-aws.sh" "${MOCK_BIN}/aws"
 
 # Terraformのモック
 cat >"${MOCK_BIN}/terraform" <<'EOF'
@@ -71,7 +71,7 @@ fi
 echo "PASS: Terraform apply was not called without approval."
 
 # 承認後の正常系テスト（RDS available）
-cp "${SCRIPT_DIR}/test-helpers/mock-aws.sh" "${MOCK_BIN}/aws"
+cp "${SCRIPT_DIR}/../helpers/mock-aws.sh" "${MOCK_BIN}/aws"
 chmod +x "${MOCK_BIN}/aws"
 
 export MOCK_RDS_STATUS="available"
@@ -107,7 +107,7 @@ fi
 echo "PASS: Snapshot was created and completed before Terraform apply."
 
 # 異常系テスト：スナップショット作成失敗
-cp "${SCRIPT_DIR}/test-helpers/mock-aws.sh" "${MOCK_BIN}/aws"
+cp "${SCRIPT_DIR}/../helpers/mock-aws.sh" "${MOCK_BIN}/aws"
 chmod +x "${MOCK_BIN}/aws"
 
 export MOCK_RDS_STATUS="available"
@@ -137,12 +137,23 @@ if ! grep -q "SNAPSHOT_CREATE_FAILED" "$MOCK_LOG"; then
   exit 1
 fi
 
+if ! grep -Fq \
+  "ERROR: AWS environment destruction did not complete successfully." \
+  "${TEST_DIR}/snapshot-failure.log" ||
+  ! grep -Fq \
+    "Before retrying, inspect Terraform state, AWS resources, and RDS snapshots." \
+    "${TEST_DIR}/snapshot-failure.log"; then
+  echo "FAIL: Recovery guidance was missing after snapshot creation failure."
+  cat "${TEST_DIR}/snapshot-failure.log"
+  exit 1
+fi
+
 echo "PASS: Terraform apply was blocked after snapshot creation failure."
 
 unset MOCK_SNAPSHOT_RESULT
 
 # RDS停止状態の正常系テスト
-cp "${SCRIPT_DIR}/test-helpers/mock-aws.sh" "${MOCK_BIN}/aws"
+cp "${SCRIPT_DIR}/../helpers/mock-aws.sh" "${MOCK_BIN}/aws"
 chmod +x "${MOCK_BIN}/aws"
 
 export MOCK_RDS_STATUS="stopped"
@@ -179,7 +190,7 @@ echo "PASS: Stopped RDS was started before snapshot and Terraform apply."
 unset MOCK_RDS_STATUS
 
 # 異常系テスト：RDSが存在しない場合
-cp "${SCRIPT_DIR}/test-helpers/mock-aws.sh" "${MOCK_BIN}/aws"
+cp "${SCRIPT_DIR}/../helpers/mock-aws.sh" "${MOCK_BIN}/aws"
 chmod +x "${MOCK_BIN}/aws"
 
 export MOCK_RDS_STATUS="not-found"
@@ -222,7 +233,7 @@ echo "PASS: Missing RDS skipped snapshot and continued Terraform apply."
 unset MOCK_RDS_STATUS
 
 # 異常系テスト：スナップショット完了待機に失敗
-cp "${SCRIPT_DIR}/test-helpers/mock-aws.sh" "${MOCK_BIN}/aws"
+cp "${SCRIPT_DIR}/../helpers/mock-aws.sh" "${MOCK_BIN}/aws"
 chmod +x "${MOCK_BIN}/aws"
 
 export MOCK_RDS_STATUS="available"
@@ -254,13 +265,24 @@ if [[ "$ACTUAL_LOG" != "$EXPECTED_LOG" ]]; then
   exit 1
 fi
 
+if ! grep -Fq \
+  "ERROR: AWS environment destruction did not complete successfully." \
+  "${TEST_DIR}/snapshot-wait-failure.log" ||
+  ! grep -Fq \
+    "Before retrying, inspect Terraform state, AWS resources, and RDS snapshots." \
+    "${TEST_DIR}/snapshot-wait-failure.log"; then
+  echo "FAIL: Recovery guidance was missing after snapshot waiter failure."
+  cat "${TEST_DIR}/snapshot-wait-failure.log"
+  exit 1
+fi
+
 echo "PASS: Terraform apply was blocked after snapshot waiter failure."
 
 unset MOCK_RDS_STATUS
 unset MOCK_SNAPSHOT_RESULT
 
 # 正常系テスト：--skip-snapshot 指定時
-cp "${SCRIPT_DIR}/test-helpers/mock-aws.sh" "${MOCK_BIN}/aws"
+cp "${SCRIPT_DIR}/../helpers/mock-aws.sh" "${MOCK_BIN}/aws"
 chmod +x "${MOCK_BIN}/aws"
 
 export MOCK_RDS_STATUS="available"
@@ -546,4 +568,85 @@ if ! grep -qi "protected" "${TEST_DIR}/protected-state.log"; then
 fi
 
 echo "PASS: Protected resource in Terraform State blocked planning."
+
+# 11・12. 削除キャンセル時とTerraform apply失敗時の復旧案内を検証
+cp "${SCRIPT_DIR}/../helpers/mock-aws.sh" "${MOCK_BIN}/aws"
+
+cat >"${MOCK_BIN}/terraform" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+
+case "$*" in
+  *"state list"*)
+    exit 0
+    ;;
+  *"plan -destroy"*)
+    exit 0
+    ;;
+  *"show -json"*)
+    printf '%s\n' \
+      '{"resource_changes":[{"address":"aws_vpc.main","type":"aws_vpc","change":{"actions":["delete"]}}]}'
+    ;;
+  *"apply "*)
+    echo "APPLY_CALLED" >>"$MOCK_LOG"
+    echo "Simulated Terraform apply failure" >&2
+    exit 42
+    ;;
+  *)
+    echo "Unexpected Terraform command: $*" >&2
+    exit 1
+    ;;
+esac
+EOF
+
+chmod +x "${MOCK_BIN}/aws" "${MOCK_BIN}/terraform"
+
+# 11. キャンセル時には復旧案内を表示しない
+: >"$MOCK_LOG"
+actual_status=0
+
+printf 'NO\n' | PATH="${MOCK_BIN}:$PATH" \
+  bash "$SCRIPT_FILE" \
+  >"${TEST_DIR}/cancel-recovery.log" 2>&1 ||
+  actual_status=$?
+
+if [[ "$actual_status" -eq 0 ]] ||
+  grep -Fxq "APPLY_CALLED" "$MOCK_LOG" ||
+  ! grep -Fq "Destroy cancelled." "${TEST_DIR}/cancel-recovery.log" ||
+  grep -Fq "AWS environment destruction did not complete successfully." \
+    "${TEST_DIR}/cancel-recovery.log"; then
+  echo "FAIL: Cancelled destroy showed recovery guidance or called apply."
+  cat "${TEST_DIR}/cancel-recovery.log"
+  exit 1
+fi
+
+echo "PASS: Cancelled destroy did not show recovery guidance."
+
+# 12. Terraform apply失敗時には復旧案内を表示する
+: >"$MOCK_LOG"
+actual_status=0
+
+printf 'DESTROY\n' | PATH="${MOCK_BIN}:$PATH" \
+  MOCK_RDS_STATUS=available \
+  bash "$SCRIPT_FILE" \
+  >"${TEST_DIR}/apply-failure-recovery.log" 2>&1 ||
+  actual_status=$?
+
+if [[ "$actual_status" -ne 42 ]] ||
+  ! grep -Fxq "APPLY_CALLED" "$MOCK_LOG" ||
+  ! grep -Fq "Simulated Terraform apply failure" \
+    "${TEST_DIR}/apply-failure-recovery.log" ||
+  ! grep -Fq "ERROR: AWS environment destruction did not complete successfully." \
+    "${TEST_DIR}/apply-failure-recovery.log" ||
+  ! grep -Fq "Some AWS resources may have been modified or deleted." \
+    "${TEST_DIR}/apply-failure-recovery.log" ||
+  ! grep -Fq "Before retrying, inspect Terraform state, AWS resources, and RDS snapshots." \
+    "${TEST_DIR}/apply-failure-recovery.log"; then
+  echo "FAIL: Terraform apply failure recovery guidance."
+  cat "${TEST_DIR}/apply-failure-recovery.log"
+  exit 1
+fi
+
+echo "PASS: Terraform apply failure showed recovery guidance."
+
 echo "All integration tests passed."

@@ -32,7 +32,7 @@ export PATH="${TEST_DIR}/bin:${PATH}"
 AWS_PROFILE="terraform-execution"
 AWS_REGION="ap-northeast-1"
 
-source "${SCRIPT_DIR}/lib/ssm-password.sh"
+source "${SCRIPT_DIR}/../../lib/ssm-password.sh"
 
 TEST_PASSWORD="$(printf '%048d' 0)"
 

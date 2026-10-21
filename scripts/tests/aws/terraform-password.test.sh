@@ -24,7 +24,7 @@ chmod 700 "${TEST_DIR}/bin/terraform"
 export PATH="${TEST_DIR}/bin:${PATH}"
 RUNTIME_DIR="${TEST_DIR}/runtime"
 
-source "${SCRIPT_DIR}/lib/terraform-password.sh"
+source "${SCRIPT_DIR}/../../lib/terraform-password.sh"
 
 TEST_PASSWORD="$(printf '%048d' 0)"
 

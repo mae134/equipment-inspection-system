@@ -7,7 +7,7 @@ TEST_DIR="$(mktemp -d)"
 trap 'rm -rf "$TEST_DIR"' EXIT
 
 mkdir -p "$TEST_DIR/bin"
-ln -s "$SCRIPT_DIR/test-helpers/mock-aws.sh" "$TEST_DIR/bin/aws"
+ln -s "$SCRIPT_DIR/../helpers/mock-aws.sh" "$TEST_DIR/bin/aws"
 
 export PATH="$TEST_DIR/bin:$PATH"
 export MOCK_LOG="$TEST_DIR/aws.log"
@@ -15,7 +15,7 @@ export MOCK_LOG="$TEST_DIR/aws.log"
 export AWS_PROFILE="terraform-execution"
 export AWS_REGION="ap-northeast-1"
 
-source "$SCRIPT_DIR/lib/alb-health.sh"
+source "$SCRIPT_DIR/../../lib/alb-health.sh"
 
 # テスト中は実際に待機しない
 sleep() {

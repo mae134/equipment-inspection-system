@@ -53,7 +53,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 RUNTIME_DIR="${PROJECT_ROOT}/terraform/runtime"
 
 AWS_PROFILE="terraform-execution"
@@ -124,7 +124,22 @@ echo "Terraform runtime state protection check passed."
 
 # Terraform Destroy Planの生成
 PLAN_FILE="$(mktemp "${TMPDIR:-/tmp}/equipment-destroy.XXXXXXXX.tfplan")"
-trap 'rm -f "$PLAN_FILE"' EXIT
+
+AWS_MODIFICATION_STARTED=false
+
+cleanup() {
+  local exit_status=$?
+
+  rm -f -- "$PLAN_FILE"
+
+  if ((exit_status != 0)) && [[ "$AWS_MODIFICATION_STARTED" == true ]]; then
+    echo "ERROR: AWS environment destruction did not complete successfully." >&2
+    echo "Some AWS resources may have been modified or deleted." >&2
+    echo "Before retrying, inspect Terraform state, AWS resources, and RDS snapshots." >&2
+  fi
+}
+
+trap cleanup EXIT
 
 echo "Generating Terraform destroy plan..."
 
@@ -260,6 +275,8 @@ esac
 if [[ "$SKIP_SNAPSHOT" == false && "$DB_STATUS" == "stopped" ]]; then
   echo "Starting RDS instance: $DB_INSTANCE_IDENTIFIER"
 
+  AWS_MODIFICATION_STARTED=true
+
   aws rds start-db-instance \
     --profile "$AWS_PROFILE" \
     --region "$AWS_REGION" \
@@ -287,6 +304,8 @@ elif [[ "$DB_STATUS" == "available" ]]; then
 
   echo "Creating RDS snapshot: $SNAPSHOT_IDENTIFIER"
 
+  AWS_MODIFICATION_STARTED=true
+
   aws rds create-db-snapshot \
     --profile "$AWS_PROFILE" \
     --region "$AWS_REGION" \
@@ -310,6 +329,8 @@ else
 fi
 
 echo "Applying approved Terraform destroy plan..."
+
+AWS_MODIFICATION_STARTED=true
 
 terraform -chdir="$RUNTIME_DIR" apply \
   -input=false \

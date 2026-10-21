@@ -2,7 +2,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SCRIPT_FILE="${SCRIPT_DIR}/destroy-aws-environment.sh"
+SCRIPT_FILE="${SCRIPT_DIR}/../../aws/destroy-aws-environment.sh"
 
 # confirm_destroy() の定義だけを読み込む
 FUNCTION_DEFINITION="$(
