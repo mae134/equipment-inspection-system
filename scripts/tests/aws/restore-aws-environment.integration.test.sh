@@ -331,22 +331,22 @@ run_mode_test \
   success \
   "New RDS creation mode selected." \
   no_snapshot \
-  --new
+  --new-db
 
 # 7. オプションなし
 run_mode_test \
   "Missing mode was rejected" \
   failure \
-  "ERROR: Specify either --new or --snapshot-id." \
+  "ERROR: Specify either --new-db or --snapshot-id." \
   none
 
 # 8. 排他的なオプションの同時指定
 run_mode_test \
   "Conflicting modes were rejected" \
   failure \
-  "ERROR: --new and --snapshot-id cannot be used together." \
+  "ERROR: --new-db and --snapshot-id cannot be used together." \
   none \
-  --new --snapshot-id "$SNAPSHOT_ID"
+  --new-db --snapshot-id "$SNAPSHOT_ID"
 
 # 9. Terraform plan失敗時は復元処理を中断する
 output=""
@@ -355,7 +355,7 @@ status=0
 output="$(
   MOCK_EXPECT_NEW_DB=true \
     MOCK_TERRAFORM_PLAN_FAIL=true \
-    bash "$RESTORE_SCRIPT" --new 2>&1
+    bash "$RESTORE_SCRIPT" --new-db 2>&1
 )" || status=$?
 
 if [[ "$status" -eq 0 ]] ||
@@ -375,7 +375,7 @@ status=0
 output="$(
   MOCK_EXPECT_NEW_DB=true \
     MOCK_TERRAFORM_PLAN_DELETE=true \
-    bash "$RESTORE_SCRIPT" --new 2>&1
+    bash "$RESTORE_SCRIPT" --new-db 2>&1
 )" || status=$?
 
 if [[ "$status" -eq 0 ]] ||
@@ -397,7 +397,7 @@ status=0
 output="$(
   MOCK_EXPECT_NEW_DB=true \
     MOCK_TERRAFORM_SHOW_FAIL=true \
-    bash "$RESTORE_SCRIPT" --new 2>&1
+    bash "$RESTORE_SCRIPT" --new-db 2>&1
 )" || status=$?
 
 if [[ "$status" -eq 0 ]] ||
@@ -417,7 +417,7 @@ status=0
 output="$(
   MOCK_EXPECT_NEW_DB=true \
     MOCK_TERRAFORM_INVALID_JSON=true \
-    bash "$RESTORE_SCRIPT" --new 2>&1
+    bash "$RESTORE_SCRIPT" --new-db 2>&1
 )" || status=$?
 
 if [[ "$status" -eq 0 ]] ||
@@ -437,7 +437,7 @@ status=0
 output="$(
   env -u CONFIRM_AWS_RESTORE \
     MOCK_EXPECT_NEW_DB=true \
-    bash "$RESTORE_SCRIPT" --new --apply 2>&1
+    bash "$RESTORE_SCRIPT" --new-db --apply 2>&1
 )" || status=$?
 
 if [[ "$status" -eq 0 ]] ||
@@ -457,7 +457,7 @@ status=0
 output="$(
   CONFIRM_AWS_RESTORE=YES \
     MOCK_EXPECT_NEW_DB=true \
-    bash "$RESTORE_SCRIPT" --new --apply 2>&1
+    bash "$RESTORE_SCRIPT" --new-db --apply 2>&1
 )" || status=$?
 
 if [[ "$status" -ne 0 ]] ||
@@ -478,7 +478,7 @@ output="$(
   CONFIRM_AWS_RESTORE=YES \
     MOCK_EXPECT_NEW_DB=true \
     MOCK_TERRAFORM_APPLY_FAIL=true \
-    bash "$RESTORE_SCRIPT" --new --apply 2>&1
+    bash "$RESTORE_SCRIPT" --new-db --apply 2>&1
 )" || status=$?
 
 if [[ "$status" -eq 0 ]] ||

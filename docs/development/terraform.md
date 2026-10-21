@@ -71,7 +71,7 @@ bash scripts/aws/restore-aws-environment.sh \
 新規RDSを作成する場合：
 
 ```bash
-bash scripts/aws/restore-aws-environment.sh --new
+bash scripts/aws/restore-aws-environment.sh --new-db
 ```
 
 標準ではTerraform Planの確認のみを行う。

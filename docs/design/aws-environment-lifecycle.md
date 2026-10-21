@@ -177,7 +177,7 @@ RestoreスクリプトでのHosted Zone検索・新規作成・対話選択は�
 Restoreでは次のいずれかを明示的に指定する。
 
 - `--snapshot-id ID`：指定したManual Snapshotから復元
-- `--new`：新規RDSを作成
+- `--new-db`：新規RDSを作成
 
 Snapshotモードでは、指定Snapshotが`available`であり、想定するDB Instanceのものであることを検証する。
 
@@ -231,7 +231,7 @@ SSM SecureString更新
 ```
 
 ```text
---new
+--new-db
     ↓
 新規RDS作成
     ↓
@@ -299,7 +299,7 @@ DestroyとRestoreでは誤操作防止のため、異なる承認方式を採用
 CLI引数で復元対象を指定する。
 
 - `--snapshot-id ID`
-- `--new`
+- `--new-db`
 - `--apply`
 - `--help`
 

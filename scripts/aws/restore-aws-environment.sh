@@ -10,11 +10,11 @@ usage() {
   cat <<'EOF'
 Usage:
   restore-aws-environment.sh --snapshot-id SNAPSHOT_ID
-  restore-aws-environment.sh --new
+  restore-aws-environment.sh --new-db
 
 Options:
   --snapshot-id ID  Restore RDS from the specified snapshot.
-  --new             Create a new RDS database.
+  --new-db          Create a new RDS database.
   --help            Show this help message.
   --apply           Apply the Terraform plan after safety checks.
 EOF
@@ -22,7 +22,7 @@ EOF
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-  --new)
+  --new-db)
     NEW_DB=true
     shift
     ;;
@@ -51,12 +51,12 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ "$NEW_DB" == true && -n "$SNAPSHOT_ID" ]]; then
-  echo "ERROR: --new and --snapshot-id cannot be used together." >&2
+  echo "ERROR: --new-db and --snapshot-id cannot be used together." >&2
   exit 1
 fi
 
 if [[ "$NEW_DB" == false && -z "$SNAPSHOT_ID" ]]; then
-  echo "ERROR: Specify either --new or --snapshot-id." >&2
+  echo "ERROR: Specify either --new-db or --snapshot-id." >&2
   usage >&2
   exit 1
 fi
