@@ -109,6 +109,8 @@ AWS BudgetsおよびCost Anomaly Detectionは、
 
 一方、長期間AWS環境を使用しない場合は、Issue #99で実装した環境削除・復元スクリプトを使用できる。
 
+
+
 ### 環境削除
 
 ```bash
@@ -141,3 +143,41 @@ bash scripts/aws/restore-aws-environment.sh \
 - **環境復元**：削除したRuntime Resourcesを再構築してアプリケーションを再稼働する。
 
 詳細は`docs/design/aws-environment-lifecycle.md`を参照する。
+
+---
+
+## 8. AWS手動操作の運用方針
+
+通常のAWS環境削除・復元では、Issue #99で実装したDestroy / Restoreスクリプトを使用する。
+
+ただし、障害調査や緊急停止・復旧など、スクリプトによる対応が困難な場合は、AWS Management ConsoleまたはAWS CLIによる手動操作を許容する。
+
+### 8.1 手動操作を行う場合の原則
+
+- 操作前にAWS Account、Region、対象リソースを確認する。
+- 可能な限り操作前の状態と変更内容を記録する。
+- 削除などの不可逆な操作では、必要なバックアップの有無を確認する。
+- 操作後は対象リソースの状態とアプリケーションへの影響を確認する。
+- Terraform管理対象を手動変更した場合は、Terraform Stateと実際のAWSリソースの差異を確認する。
+
+### 8.2 Terraform管理との整合性
+
+Terraform管理対象リソースをAWS Management ConsoleやAWS CLIで変更すると、Terraformの構成・Stateと実際のAWS環境に差異（Drift）が生じる可能性がある。
+
+手動操作後は、必要に応じて以下を実行して差異を確認する。
+
+```bash
+terraform -chdir=terraform/runtime plan
+```
+
+差異が確認された場合は、Terraform構成の修正、Stateの調整、またはAWSリソースの状態修正を検討する。
+
+差異を確認せずにTerraform ApplyやDestroyを実行しない。
+
+### 8.3 運用改善
+
+同じ手動操作が繰り返し必要になる場合は、スクリプトへの組み込みや運用手順の改善を検討する。
+
+ただし、例外的な障害対応をすべて自動化することは目的としない。
+
+通常運用の再現性と緊急時の対応柔軟性を両立する。

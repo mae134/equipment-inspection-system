@@ -93,6 +93,12 @@ Snapshot作成またはavailable確認に失敗した場合は、Terraformによ
 
 Snapshotは自動削除しない。不要なSnapshotは保持状況を確認して手動で削除する。
 
+Destroyのたびに新しい日時付きIdentifierでManual Snapshotを作成する。既存Snapshotは上書きしない。
+
+Manual SnapshotはRDS DB Instanceの削除後も保持され、保存容量に応じた料金が発生する。
+
+Snapshotの世代管理・自動削除はIssue #99の対象外とし、不要になったSnapshotは復元要否を確認してから手動で削除する。
+
 ## 5. AWS環境削除フロー
 
 使用スクリプト：
@@ -196,6 +202,22 @@ Destroy / Restoreスクリプトでは、主要な実行環境を固定値で管
 AWS ProfileとRoleの設定・認証情報はAWS CLI側で管理する。
 
 Restore時のDB Passwordは`openssl`で生成し、一時的なTerraform変数として渡す。
+
+### Terraform RDS Password変数
+
+RDSのMaster Password管理には、以下のTerraform変数を使用する。
+
+- `db_password`：RDS Master Password。EphemeralかつSensitiveとして扱う。
+- `db_password_version`：Write-only Passwordのバージョン管理に使用する数値。
+- `db_password_enabled`：TerraformによるRDS Password設定の有効・無効を制御するBoolean値。
+
+通常のRestoreでは`db_password_enabled=true`（デフォルト）を使用する。
+
+Destroyでは`TF_VAR_db_password_enabled=false`を指定し、`password_wo`と`password_wo_version`を両方`null`にする。
+
+これにより、Destroy Plan作成時にEphemeral Passwordを要求しないようにする。
+
+Destroy時に`TF_VAR_db_password_version=null`を指定する方式は採用しない。
 
 Passwordや一時PlanファイルをGit管理対象に含めない。
 
@@ -309,7 +331,166 @@ CLI引数で復元対象を指定する。
 
 SnapshotやHosted Zoneの対話選択は行わない。
 
-## 14. Fail Safe / Fail Closed
+## 14. 実行コマンド例
+
+以下のコマンドは、リポジトリのルートディレクトリから実行する。
+
+### 14.1 Destroy（RDS Snapshot作成あり）
+
+```bash
+bash scripts/aws/destroy-aws-environment.sh
+```
+
+- Terraform Destroy Planを作成し、削除対象を表示する。
+- `DESTROY`の完全一致入力による承認を要求する。
+- RDSが存在する場合はManual Snapshotを作成し、`available`になるまで待機する。
+- Snapshot作成完了後にRuntime Resourcesを削除する。
+- 作成したManual Snapshotは削除後も保持する。
+
+### 14.2 Destroy（RDS Snapshot作成なし）
+
+```bash
+bash scripts/aws/destroy-aws-environment.sh --skip-snapshot
+```
+
+- RDS Manual Snapshotの作成を省略する。
+- `DESTROY`の完全一致入力による承認は省略しない。
+- 保存が必要なデータがない場合、または復元可能なバックアップを別途確認した場合に限って使用する。
+- RDSに未保存のデータがある場合、削除によって復元できなくなる可能性がある。
+
+### 14.3 Restore（RDS Snapshotから復元）
+
+```bash
+CONFIRM_AWS_RESTORE=YES \
+  bash scripts/aws/restore-aws-environment.sh \
+    --snapshot-id <SNAPSHOT_ID> \
+    --apply
+```
+
+- 指定したSnapshotからRDSを復元する。
+- Terraform Apply後、DB Password設定、アプリケーションBuild、ECR Push、ECS起動、ALB Health確認を実行する。
+- `<SNAPSHOT_ID>`は実際に保存されたSnapshot Identifierに置き換える。
+
+### 14.4 Restore（新規RDS作成）
+
+```bash
+CONFIRM_AWS_RESTORE=YES \
+  bash scripts/aws/restore-aws-environment.sh \
+    --new-db \
+    --apply
+```
+
+- Snapshotを使用せず、新しいRDSを作成する。
+- 既存Snapshotのデータは引き継がない。
+- アプリケーションのBuild・デプロイとヘルスチェックまで実行する。
+
+### 14.5 Restore（Plan確認のみ）
+
+Snapshotからの復元計画を確認する場合：
+
+```bash
+bash scripts/aws/restore-aws-environment.sh \
+  --snapshot-id <SNAPSHOT_ID>
+```
+
+新規RDS作成の計画を確認する場合：
+
+```bash
+bash scripts/aws/restore-aws-environment.sh \
+  --new-db
+```
+
+- `--apply`を指定しないため、Terraform Applyは実行しない。
+- 実際の環境構築には`--apply`と`CONFIRM_AWS_RESTORE=YES`の両方が必要。
+
+### Destroy / Restoreの実行時間計測
+
+AWS環境の削除・再構築にかかる時間を計測する場合は、`time`コマンドを使用する。
+
+#### Destroy
+
+```bash
+time bash scripts/aws/destroy-aws-environment.sh
+```
+
+#### Restore（Snapshotから復元）
+
+```bash
+time env CONFIRM_AWS_RESTORE=YES \
+  bash scripts/aws/restore-aws-environment.sh \
+    --snapshot-id SNAPSHOT_ID \
+    --apply
+```
+
+#### Restore（新規RDS作成）
+
+```bash
+time env CONFIRM_AWS_RESTORE=YES \
+  bash scripts/aws/restore-aws-environment.sh \
+    --new-db \
+    --apply
+```
+
+実行終了後に表示される`real`が、実際の経過時間を表す。
+
+```text
+real    12m35.421s
+user    0m8.312s
+sys     0m2.145s
+```
+
+`real`にはAWSリソースの作成・削除待機時間や、ユーザーによる承認入力の待機時間も含まれる。
+
+`time`による計測はスクリプトの処理内容を変更しない。
+
+### 14.6 注意事項
+
+- Destroy前にAWS Account、IAM Role、Terraform Planの削除対象を確認する。
+- `--skip-snapshot`はデータ損失の可能性を理解したうえで使用する。
+- Restore完了後はHTTPS疎通、ログイン、DBデータ保持状況を手動で確認する。
+- AWSへの変更開始後に異常終了した場合は、Terraform StateとAWSリソースの状態を確認してから再実行する。
+- Manual Snapshotは自動削除されず、保持中はストレージ料金が発生する場合がある。
+
+### 14.7 RDS Manual Snapshot確認
+
+#### Manual Snapshot一覧確認
+
+```bash
+aws rds describe-db-snapshots \
+  --profile terraform-execution \
+  --region ap-northeast-1 \
+  --snapshot-type manual \
+  --query 'DBSnapshots[*].[DBSnapshotIdentifier,DBInstanceIdentifier,Status,SnapshotCreateTime]' \
+  --output table
+```
+
+- Manual SnapshotのIdentifier、対象DB、状態、作成日時を確認する。
+- Restoreで使用するSnapshot Identifierを取得できる。
+- `available`のSnapshotが復元候補となる。
+
+#### 指定Snapshotの状態確認
+
+```bash
+aws rds describe-db-snapshots \
+  --profile terraform-execution \
+  --region ap-northeast-1 \
+  --db-snapshot-identifier equipment-inspection-db-manual-20261022-121956 \
+  --query 'DBSnapshots[0].[DBSnapshotIdentifier,Status,SnapshotType]' \
+  --output table
+```
+
+- 指定したSnapshotの状態と種別を確認する。
+- `Status`が`available`、`SnapshotType`が`manual`であることを確認する。
+- Snapshot Identifierは実際に作成されたものに置き換える。
+
+#### 注意事項
+
+- Manual SnapshotはRDS DB Instanceを削除しても保持される。
+- Snapshotが`creating`の場合は、`available`になるまで復元に使用できない。
+- 不要なSnapshotは、復元の必要性を確認したうえで手動削除する。
+- Snapshotの保持にはストレージ料金が発生する場合がある。
+
+## 15. Fail Safe / Fail Closed
 
 次の場合は処理を中断する。
 
@@ -329,7 +510,7 @@ AWSへの変更開始後に失敗した場合は、自動Rollbackを実施しな
 
 Terraform State、RDS Snapshot、AWSリソースの状態を確認してから再実行する。
 
-## 15. 復元後確認
+## 16. 復元後確認
 
 ### スクリプトによる自動確認
 
@@ -349,7 +530,7 @@ Terraform State、RDS Snapshot、AWSリソースの状態を確認してから�
 
 自動確認の成功だけで、アプリケーション全機能の正常性を保証するものではない。
 
-## 16. 今後の拡張候補
+## 17. 今後の拡張候補
 
 Issue #99の対象外とする。
 
@@ -358,3 +539,55 @@ Issue #99の対象外とする。
 - Snapshot削除専用スクリプト
 - HTTPS・DBデータの自動検証
 - ECS ImageへのコミットSHAなどの固定タグ導入
+- RDS Password設定の制御方法の見直し
+  - 現状、Destroy Plan作成時のTerraform変数エラーを回避するため、`db_password_enabled=false`を使用している。
+  - 通常のRestoreでは`true`を使用し、RDS Master Passwordを設定する。
+  - 将来的には、通常構築時にパスワード設定を意図せず無効化できない設計を検討する。
+  - Terraformの変数設計を改善し、Destroy専用の制御が通常の構築処理に影響しないようにする。
+
+## 18. 実環境検証結果
+
+検証日：2026-10-22
+
+### 18.1 Destroy検証（Manual Snapshotあり）
+
+**結果：成功**
+
+- Terraform Destroy Plan：47リソースの削除を予定
+- `DESTROY`の完全一致入力による承認：成功
+- RDS Manual Snapshot作成：成功
+- Snapshotが`available`になるまでの待機：成功
+- Terraform Apply：47リソース削除成功
+- Destroyスクリプト：正常終了
+
+作成したSnapshot：
+
+`equipment-inspection-db-manual-20261022-121956`
+
+Destroy完了後、AWS CLIでSnapshotの状態が`available`、種別が`manual`であることを確認した。
+
+### 18.2 Restore検証（Snapshotから復元）
+
+**結果：インフラ復元・アプリ起動成功**
+
+- 指定したManual SnapshotからRDSを復元
+- Docker Image Build成功
+- ECRへのImage Push成功
+- ECS ServiceがStable状態に到達
+- ALB Target HealthがHealthy状態に到達
+- HTTPS経由でログイン画面を表示
+- ログイン成功
+- ダッシュボード・設備一覧・点検履歴画面を表示
+
+ただし、初期投入データとSnapshot由来のデータを区別できなかったため、データ保持の厳密な検証は未完了。
+
+### 18.3 追加検証
+
+以下は検証完了後に結果を追記する。
+
+- 新規登録した点検履歴を含むSnapshotの作成
+- Snapshotからの再復元と点検履歴の保持確認
+- `--skip-snapshot`によるDestroy
+- `--new-db`による新規構築
+- 新規構築後のDestroy
+- 最終的なRuntime Resources削除とPersistent Resources保持の確認
