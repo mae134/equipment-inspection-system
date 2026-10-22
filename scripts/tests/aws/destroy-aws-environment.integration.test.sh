@@ -356,9 +356,13 @@ case "$*" in
   *"state list"*)
     exit 0
     ;;
-  *"plan -destroy"*)
-    exit 0
-    ;;
+*"plan -destroy"*)
+  if [[ "${TF_VAR_db_password_version:-}" != "null" ]]; then
+    echo "ERROR: Destroy plan requires TF_VAR_db_password_version=null" >&2
+    exit 1
+  fi
+  exit 0
+  ;;
   *"show -json"*)
     printf '%s\n' '{"resource_changes":[]}'
     ;;

@@ -22,7 +22,7 @@ run_test() {
   local expected_status="$3"
   local actual_status=0
 
-  confirm_destroy <<< "$input" >/dev/null 2>&1 || actual_status=$?
+  confirm_destroy <<<"$input" >/dev/null 2>&1 || actual_status=$?
 
   if [[ "$actual_status" -eq "$expected_status" ]]; then
     echo "PASS: $name"

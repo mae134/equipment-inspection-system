@@ -41,6 +41,9 @@ node_modules/
 **/*.tfstate.*
 *.tfplan
 
+# Terraform State backups
+/terraform-state-backups/
+
 # Terraform variable files (may contain secrets)
 **/*.tfvars
 **/*.tfvars.json

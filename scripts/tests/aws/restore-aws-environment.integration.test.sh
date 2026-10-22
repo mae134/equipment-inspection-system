@@ -36,9 +36,13 @@ fi
   [[ -f "${4:-}" ]] || exit 1
 
   if [[ "${MOCK_TERRAFORM_PLAN_DELETE:-false}" == true ]]; then
-    printf '%s\n' '{"resource_changes":[{"change":{"actions":["delete","create"]}}]}'
+    printf '%s\n' '{"resource_changes":[{"address":"aws_db_instance.main","change":{"actions":["delete","create"]}}]}'
+  elif [[ "${MOCK_TERRAFORM_RDS_ACTION:-create}" == "no-op" ]]; then
+    printf '%s\n' '{"resource_changes":[{"address":"aws_db_instance.main","change":{"actions":["no-op"]}}]}'
+  elif [[ "${MOCK_TERRAFORM_RDS_ACTION:-create}" == "update" ]]; then
+    printf '%s\n' '{"resource_changes":[{"address":"aws_db_instance.main","change":{"actions":["update"]}}]}'
   else
-    printf '%s\n' '{"resource_changes":[{"change":{"actions":["create"]}}]}'
+    printf '%s\n' '{"resource_changes":[{"address":"aws_db_instance.main","change":{"actions":["create"]}}]}'
   fi
 
   exit 0
@@ -905,5 +909,54 @@ run_ecr_test "Docker build failure stops restoration" "MOCK_DOCKER_BUILD_FAIL"
 run_ecr_test "ECR authentication failure stops restoration" "MOCK_ECR_AUTH_FAIL"
 run_ecr_test "Docker login failure stops restoration" "MOCK_DOCKER_LOGIN_FAIL"
 run_ecr_test "Docker push failure stops restoration" "MOCK_DOCKER_PUSH_FAIL"
+
+# 既存RDSがある場合（no-op）、パスワードを更新する
+output=""
+status=0
+
+: >"$MOCK_LOG"
+
+output="$(
+  CONFIRM_AWS_RESTORE=YES \
+    MOCK_EXPECT_NEW_DB=true \
+    MOCK_TERRAFORM_RDS_ACTION=no-op \
+    MOCK_RESTORE_RDS_WAIT=true \
+    bash "$RESTORE_SCRIPT" --new-db --apply 2>&1
+)" || status=$?
+
+if [[ "$status" -ne 0 ]] ||
+  ! grep -Fxq "MOCK_RDS_MODIFY_OK" "$MOCK_LOG" ||
+  ! grep -Fxq "RDS_PASSWORD_UPDATE_WAIT_COMPLETED" "$MOCK_LOG" ||
+  ! grep -Fq "SSM DB password update completed." <<<"$output"; then
+  echo "FAIL: Existing RDS password synchronization"
+  echo "$output"
+  exit 1
+fi
+
+echo "PASS: Existing RDS password synchronization"
+
+# RDSがupdateの場合はRestoreを中断する
+output=""
+status=0
+
+: >"$MOCK_LOG"
+
+output="$(
+  CONFIRM_AWS_RESTORE=YES \
+    MOCK_EXPECT_NEW_DB=true \
+    MOCK_TERRAFORM_RDS_ACTION=update \
+    bash "$RESTORE_SCRIPT" --new-db --apply 2>&1
+)" || status=$?
+
+if [[ "$status" -eq 0 ]] ||
+  grep -Fxq "MOCK_RDS_MODIFY_OK" "$MOCK_LOG" ||
+  grep -Fq "MOCK_TERRAFORM_APPLY_OK" <<<"$output" ||
+  grep -Fq "SSM DB password update completed." <<<"$output"; then
+  echo "FAIL: Unexpected RDS update was not rejected safely"
+  echo "$output"
+  exit 1
+fi
+
+echo "PASS: Unexpected RDS update was rejected safely"
 
 echo "All restore integration tests passed."

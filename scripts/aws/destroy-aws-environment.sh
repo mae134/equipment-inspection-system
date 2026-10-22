@@ -110,7 +110,7 @@ RUNTIME_STATE_RESOURCES="$(
 )"
 
 PROTECTED_STATE_RESOURCES="$(
-  grep -E '(^|\.)(aws_route53_zone|aws_sns_topic|aws_sns_topic_policy|aws_budgets_budget)\.' \
+  grep -E '^(module\.[^.]+\.)*(aws_route53_zone|aws_sns_topic|aws_sns_topic_policy|aws_budgets_budget)\.' \
     <<<"$RUNTIME_STATE_RESOURCES" || true
 )"
 
@@ -143,10 +143,11 @@ trap cleanup EXIT
 
 echo "Generating Terraform destroy plan..."
 
-terraform -chdir="$RUNTIME_DIR" plan \
-  -destroy \
-  -input=false \
-  -out="$PLAN_FILE"
+TF_VAR_db_password_version=null \
+  terraform -chdir="$RUNTIME_DIR" plan \
+    -destroy \
+    -input=false \
+    -out="$PLAN_FILE"
 
 echo "Terraform destroy plan generated successfully."
 echo "Plan file: $PLAN_FILE"

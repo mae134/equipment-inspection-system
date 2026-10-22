@@ -236,6 +236,39 @@ fi
 
 echo "Terraform plan safety check passed."
 
+# Terraform PlanからRDSの新規作成有無を判定する。
+# create: Terraformが初期パスワードを設定する。
+# no-op : 既存RDSのパスワードをAWS CLIで更新する。
+RDS_ACTION="$(
+  jq -r '
+    [
+      .resource_changes[]?
+      | select(.address == "aws_db_instance.main")
+      | .change.actions
+    ] as $actions
+    | if $actions == [["create"]] then
+        "create"
+      elif $actions == [["no-op"]] then
+        "no-op"
+      else
+        "unexpected"
+      end
+  ' "$PLAN_JSON"
+)"
+
+case "$RDS_ACTION" in
+create)
+  RDS_CREATED_BY_PLAN=true
+  ;;
+no-op)
+  RDS_CREATED_BY_PLAN=false
+  ;;
+*)
+  echo "ERROR: Unexpected RDS Terraform plan actions." >&2
+  exit 1
+  ;;
+esac
+
 # --applyが指定されていなければplan確認のみで終了
 if [[ "$APPLY" != true ]]; then
   echo "Plan-only mode. Terraform apply was not executed."
@@ -257,9 +290,11 @@ run_terraform_with_db_password \
 
 echo "Terraform apply completed."
 
-# スナップショット復元時はRDSのマスターパスワードを更新
-if [[ "$NEW_DB" == false ]]; then
-  echo "Updating restored RDS master password..."
+# TerraformでRDSを新規作成していない場合、
+# またはスナップショットから復元した場合は、
+# AWS CLIでRDSのマスターパスワードを更新する。
+if [[ "$NEW_DB" == false || "$RDS_CREATED_BY_PLAN" == false ]]; then
+  echo "Updating RDS master password..."
 
   modify_rds_master_password "$DB_PASSWORD"
 
