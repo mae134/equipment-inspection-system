@@ -24,10 +24,21 @@ resource "aws_db_instance" "main" {
 
   db_name = var.db_snapshot_identifier == null ? "equipment_inspection" : null
 
-  username            = var.db_snapshot_identifier == null ? "postgres" : null
-  password_wo         = var.db_snapshot_identifier == null ? var.db_password : null
-  password_wo_version = var.db_snapshot_identifier == null ? var.db_password_version : null
-  port                = 5432
+  username = var.db_snapshot_identifier == null ? "postgres" : null
+
+  password_wo = (
+    var.db_password_enabled && var.db_snapshot_identifier == null
+    ? var.db_password
+    : null
+  )
+
+  password_wo_version = (
+    var.db_password_enabled && var.db_snapshot_identifier == null
+    ? var.db_password_version
+    : null
+  )
+
+  port = 5432
 
   db_subnet_group_name = aws_db_subnet_group.main.name
 

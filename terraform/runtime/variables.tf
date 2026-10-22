@@ -28,3 +28,9 @@ variable "ecs_desired_count" {
     error_message = "ecs_desired_count must be non-negative."
   }
 }
+
+variable "db_password_enabled" {
+  description = "Whether to configure the RDS master password through Terraform."
+  type        = bool
+  default     = true
+}
