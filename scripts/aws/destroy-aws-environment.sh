@@ -143,7 +143,7 @@ trap cleanup EXIT
 
 echo "Generating Terraform destroy plan..."
 
-TF_VAR_db_password_version=null \
+TF_VAR_db_password_enabled=false \
   terraform -chdir="$RUNTIME_DIR" plan \
     -destroy \
     -input=false \
