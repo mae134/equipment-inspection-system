@@ -79,8 +79,13 @@ resource "aws_ecs_service" "app" {
   name                  = "equipment-inspection-service"
   cluster               = aws_ecs_cluster.main.id
   task_definition       = "${aws_ecs_task_definition.app.family}:${aws_ecs_task_definition.app.revision}"
-  desired_count         = 0
-  wait_for_steady_state = false
+  desired_count         = var.ecs_desired_count
+  wait_for_steady_state = true
+
+  depends_on = [
+    aws_ssm_parameter.db_url,
+    aws_ssm_parameter.db_username,
+  ]
 
   capacity_provider_strategy {
     capacity_provider = "FARGATE"
@@ -113,6 +118,10 @@ resource "aws_ecs_service" "app" {
   deployment_circuit_breaker {
     enable   = true
     rollback = true
+  }
+
+  lifecycle {
+    ignore_changes = [desired_count]
   }
 
   health_check_grace_period_seconds = 0

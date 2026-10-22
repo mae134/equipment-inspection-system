@@ -24,6 +24,10 @@ resource "aws_cloudwatch_metric_alarm" "rds_cpu_high" {
   }
 
   alarm_actions = [
-    aws_sns_topic.alerts.arn
+    data.aws_sns_topic.alerts.arn
   ]
+}
+
+data "aws_sns_topic" "alerts" {
+  name = "equipment-inspection-alerts"
 }

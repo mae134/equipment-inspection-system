@@ -11,6 +11,8 @@ resource "aws_db_subnet_group" "main" {
 resource "aws_db_instance" "main" {
   identifier = "equipment-inspection-db"
 
+  snapshot_identifier = var.db_snapshot_identifier
+
   engine         = "postgres"
   engine_version = "18.3"
   instance_class = "db.t4g.micro"
@@ -20,9 +22,23 @@ resource "aws_db_instance" "main" {
   storage_type          = "gp2"
   storage_encrypted     = true
 
-  db_name  = "equipment_inspection"
-  username = "postgres"
-  port     = 5432
+  db_name = var.db_snapshot_identifier == null ? "equipment_inspection" : null
+
+  username = var.db_snapshot_identifier == null ? "postgres" : null
+
+  password_wo = (
+    var.db_password_enabled && var.db_snapshot_identifier == null
+    ? var.db_password
+    : null
+  )
+
+  password_wo_version = (
+    var.db_password_enabled && var.db_snapshot_identifier == null
+    ? var.db_password_version
+    : null
+  )
+
+  port = 5432
 
   db_subnet_group_name = aws_db_subnet_group.main.name
 
@@ -50,7 +66,4 @@ resource "aws_db_instance" "main" {
   ca_cert_identifier = "rds-ca-rsa2048-g1"
 
   skip_final_snapshot = true
-
-  password_wo         = ephemeral.random_password.db.result
-  password_wo_version = 2
 }

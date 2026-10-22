@@ -2,7 +2,7 @@
 
 # プロジェクト固有の環境変数を .env から読み込む
 set -a
-source "$(dirname "$0")/../.env"
+source "$(dirname "$0")/../../.env"
 set +a
 
 # SNS Subscription の登録に使用するAWSリソースとCLI設定
