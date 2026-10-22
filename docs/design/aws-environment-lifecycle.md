@@ -626,7 +626,8 @@ RDS Manual Snapshotを作成する通常のDestroyと、Snapshot作成を省略�
 - 新しいRDS Manual Snapshotを作成せずに削除処理を実施
 - Terraformによる47リソースの削除に成功
 - Destroyスクリプトが正常終了
-- 実行時間：5分35.022秒
+- 1回目の実行時間：5分35.022秒
+- 新規RDS構築後の最終Destroy：6分13.104秒
 
 ### 18.2 Restore検証（Snapshotから復元）
 
@@ -655,7 +656,7 @@ RDS Manual Snapshotを作成する通常のDestroyと、Snapshot作成を省略�
 - HTTPS経由でアプリケーションにアクセス
 - 設備`EQ-001`（モーター設備A）の表示を確認
 - 点検履歴が存在しないことを確認
-- 以前のSnapshotに含まれる点検履歴が引き継がれていないことを確認
+- 以前に登録した点検履歴が新規DB上には存在しないことを画面で確認
 
 実行時間：**18分44.255秒**
 
@@ -668,21 +669,49 @@ RDS Manual Snapshotを作成する通常のDestroyと、Snapshot作成を省略�
 | Snapshotからの環境復元 | 20分26.790秒 | 成功 |
 | Snapshot作成なしの環境削除 | 5分35.022秒 | 成功 |
 | 新規RDS作成による環境構築 | 18分44.255秒 | 成功 |
-| 新規RDS構築後の最終Destroy | 実行中 | 結果確認待ち |
+| 新規RDS構築後の最終Destroy | 6分13.104秒 | 成功 |
 
 - 実行時間にはAWSリソースの作成・削除待機時間や、ユーザーによる承認入力時間も含まれる。
 - AWSリソースの状態によって所要時間は変動する。
 
 ### 18.5 最終Destroy・リソース保持確認
 
-新規RDS作成によるRestoreの動作確認後、`--skip-snapshot`を指定して最終Destroyを実施する。
+**結果：Runtime Resourcesの削除成功**
 
-確認項目：
+新規RDS作成によるRestoreの動作確認後、
+`--skip-snapshot`を指定して最終Destroyを実施した。
 
-- Runtime Resourcesが削除されていること
-- Persistent Terraform Stateで管理するRoute53 Hosted Zoneが保持されていること
-- 既存のRDS Manual Snapshotが意図せず削除されていないこと
-- 新しいRDS Manual Snapshotが作成されていないこと
-- Terraform StateとAWS実リソースに想定外の不整合がないこと
+- Terraformによる47リソースの削除に成功
+- Destroyスクリプトが正常終了（Exit code：`0`）
+- 実行時間：6分13.104秒
 
-※最終Destroyの完了ログとAWS
+**Persistent Resourcesの保持確認：成功**
+
+AWS CLIによる確認の結果、最終Destroy後も以下のリソースが保持されていることを確認した。
+
+- Route53 Hosted Zone `kdevnest.com.` が存在することを確認
+- Hosted Zone ID：`Z06136141UCK9KD6NU41L`
+- 既存のRDS Manual Snapshot 2件が`available`状態で保持されていることを確認
+  - `equipment-inspection-db-manual-20261022-121956`
+  - `equipment-inspection-db-manual-20261022-130524`
+- 最終Destroyによる新しいManual Snapshotの作成がないことを確認
+
+これにより、Runtime Resourcesの削除後も、保持対象のHosted ZoneとManual Snapshotが維持されていることを確認した。
+
+**Terraform Stateの確認：成功**
+
+`terraform -chdir=terraform/runtime state list`を実行し、
+Runtime Terraform Stateに管理対象リソースが残っていないことを確認した。
+
+**不要なRDS Manual Snapshotの削除：成功**
+
+実環境検証で作成した以下のManual Snapshot 2件について、保存が必要なデータが存在しないことを確認したうえで、AWS CLIから削除した。
+
+- `equipment-inspection-db-manual-20261022-121956`
+- `equipment-inspection-db-manual-20261022-130524`
+
+両Snapshotの削除操作は正常に完了し、`Status`が`deleted`となった。
+
+削除後に`describe-db-snapshots --snapshot-type manual`を実行し、Manual Snapshot一覧が空であることを確認した。
+
+これにより、Runtime Resourcesの削除、Persistent Hosted Zoneの保持、および不要なManual Snapshotの整理が完了した。
