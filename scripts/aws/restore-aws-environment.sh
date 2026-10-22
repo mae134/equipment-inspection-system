@@ -9,14 +9,21 @@ APPLY=false
 usage() {
   cat <<'EOF'
 Usage:
-  restore-aws-environment.sh --snapshot-id SNAPSHOT_ID
-  restore-aws-environment.sh --new-db
+  restore-aws-environment.sh --snapshot-id SNAPSHOT_ID [--apply]
+  restore-aws-environment.sh --new-db [--apply]
 
 Options:
   --snapshot-id ID  Restore RDS from the specified snapshot.
   --new-db          Create a new RDS database.
-  --help            Show this help message.
   --apply           Apply the Terraform plan after safety checks.
+  --help            Show this help message.
+
+Environment Variables:
+  CONFIRM_AWS_RESTORE=YES
+                    Required when using --apply.
+
+Behavior:
+  Without --apply, Terraform Apply is not executed.
 EOF
 }
 
