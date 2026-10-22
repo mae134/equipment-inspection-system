@@ -490,6 +490,57 @@ aws rds describe-db-snapshots \
 - 不要なSnapshotは、復元の必要性を確認したうえで手動削除する。
 - Snapshotの保持にはストレージ料金が発生する場合がある。
 
+### 14.8 不要なRDSスナップショットの削除
+
+手動スナップショットはRDSインスタンス削除後も保持されるため、不要になった場合は明示的に削除する。
+
+**1. スナップショット一覧を確認**
+
+```bash
+aws rds describe-db-snapshots \
+  --profile terraform-execution \
+  --region ap-northeast-1 \
+  --snapshot-type manual \
+  --query 'DBSnapshots[*].[DBSnapshotIdentifier,Status,SnapshotCreateTime]' \
+  --output table
+```
+
+**2. 削除対象を確認**
+
+削除前に、以下を確認する。
+
+- 今後の環境復元に必要なスナップショットではないこと
+- 保存が必要なデータが含まれていないこと
+- スナップショットIDが正しいこと
+
+**3. スナップショットを削除**
+
+```bash
+aws rds delete-db-snapshot \
+  --profile terraform-execution \
+  --region ap-northeast-1 \
+  --db-snapshot-identifier SNAPSHOT_ID
+```
+
+`SNAPSHOT_ID` は実際のスナップショットIDに置き換える。
+
+**4. 削除結果を確認**
+
+```bash
+aws rds describe-db-snapshots \
+  --profile terraform-execution \
+  --region ap-northeast-1 \
+  --snapshot-type manual \
+  --output table
+```
+
+**注意事項**
+
+- スナップショットの削除は元に戻せない。
+- 削除後は、そのスナップショットからRDSを復元できない。
+- 削除対象がTerraform管理下にある場合は、Terraform側の管理方法も確認する。
+- 保存料金はスナップショットの使用容量や無料枠などによって異なる。
+
 ## 15. Fail Safe / Fail Closed
 
 次の場合は処理を中断する。
@@ -547,47 +598,91 @@ Issue #99の対象外とする。
 
 ## 18. 実環境検証結果
 
-検証日：2026-10-22
+検証期間：2026-10-22〜2026-10-23
 
-### 18.1 Destroy検証（Manual Snapshotあり）
+### 18.1 Destroy検証
 
 **結果：成功**
 
-- Terraform Destroy Plan：47リソースの削除を予定
-- `DESTROY`の完全一致入力による承認：成功
-- RDS Manual Snapshot作成：成功
-- Snapshotが`available`になるまでの待機：成功
-- Terraform Apply：47リソース削除成功
-- Destroyスクリプト：正常終了
+RDS Manual Snapshotを作成する通常のDestroyと、Snapshot作成を省略する`--skip-snapshot`の両方を実環境で検証した。
+
+**Manual Snapshotあり**
+
+- Terraform Destroy Planで47リソースの削除を確認
+- `DESTROY`の完全一致入力による承認に成功
+- RDS Manual Snapshotの作成に成功
+- Snapshotが`available`になるまでの待機に成功
+- Terraformによる47リソースの削除に成功
+- Destroyスクリプトが正常終了
 
 作成したSnapshot：
 
-`equipment-inspection-db-manual-20261022-121956`
+- `equipment-inspection-db-manual-20261022-121956`
+- `equipment-inspection-db-manual-20261022-130524`
 
-Destroy完了後、AWS CLIでSnapshotの状態が`available`、種別が`manual`であることを確認した。
+**Snapshot作成なし（`--skip-snapshot`）**
+
+- `--skip-snapshot`を指定してDestroyを実行
+- 新しいRDS Manual Snapshotを作成せずに削除処理を実施
+- Terraformによる47リソースの削除に成功
+- Destroyスクリプトが正常終了
+- 実行時間：5分35.022秒
 
 ### 18.2 Restore検証（Snapshotから復元）
 
-**結果：インフラ復元・アプリ起動成功**
+**結果：成功**
 
 - 指定したManual SnapshotからRDSを復元
-- Docker Image Build成功
-- ECRへのImage Push成功
+- RDS Master Password設定とSSM Parameter同期処理を実施
+- Maven Build、Docker Image Buildに成功
+- ECRへのImage Pushに成功
 - ECS ServiceがStable状態に到達
 - ALB Target HealthがHealthy状態に到達
 - HTTPS経由でログイン画面を表示
 - ログイン成功
 - ダッシュボード・設備一覧・点検履歴画面を表示
 
-ただし、初期投入データとSnapshot由来のデータを区別できなかったため、データ保持の厳密な検証は未完了。
+実行時間：**20分26.790秒**
 
-### 18.3 追加検証
+### 18.3 Restore検証（新規RDS作成）
 
-以下は検証完了後に結果を追記する。
+**結果：成功**
 
-- 新規登録した点検履歴を含むSnapshotの作成
-- Snapshotからの再復元と点検履歴の保持確認
-- `--skip-snapshot`によるDestroy
-- `--new-db`による新規構築
-- 新規構築後のDestroy
-- 最終的なRuntime Resources削除とPersistent Resources保持の確認
+`--new-db`モードを使用し、既存のRDS Snapshotを利用せずにAWS環境を新規構築した。
+
+- Restoreスクリプトが正常終了（Exit code：`0`）
+- ALB Target HealthがHealthy状態に到達
+- HTTPS経由でアプリケーションにアクセス
+- 設備`EQ-001`（モーター設備A）の表示を確認
+- 点検履歴が存在しないことを確認
+- 以前のSnapshotに含まれる点検履歴が引き継がれていないことを確認
+
+実行時間：**18分44.255秒**
+
+### 18.4 AWS環境の構築・削除時間
+
+2026年10月22日〜23日の実環境検証における実測値。
+
+| 操作 | 所要時間 | 結果 |
+|---|---:|---|
+| Snapshotからの環境復元 | 20分26.790秒 | 成功 |
+| Snapshot作成なしの環境削除 | 5分35.022秒 | 成功 |
+| 新規RDS作成による環境構築 | 18分44.255秒 | 成功 |
+| 新規RDS構築後の最終Destroy | 実行中 | 結果確認待ち |
+
+- 実行時間にはAWSリソースの作成・削除待機時間や、ユーザーによる承認入力時間も含まれる。
+- AWSリソースの状態によって所要時間は変動する。
+
+### 18.5 最終Destroy・リソース保持確認
+
+新規RDS作成によるRestoreの動作確認後、`--skip-snapshot`を指定して最終Destroyを実施する。
+
+確認項目：
+
+- Runtime Resourcesが削除されていること
+- Persistent Terraform Stateで管理するRoute53 Hosted Zoneが保持されていること
+- 既存のRDS Manual Snapshotが意図せず削除されていないこと
+- 新しいRDS Manual Snapshotが作成されていないこと
+- Terraform StateとAWS実リソースに想定外の不整合がないこと
+
+※最終Destroyの完了ログとAWS
