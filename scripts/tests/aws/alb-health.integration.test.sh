@@ -19,10 +19,13 @@ source "$SCRIPT_DIR/../../lib/alb-health.sh"
 
 # テスト中は実際に待機しない
 sleep() {
-  if [[ "$1" != "30" ]]; then
+  case "$1" in
+  2 | 30) ;;
+  *)
     echo "ERROR: Unexpected sleep duration: $1" >&2
     return 1
-  fi
+    ;;
+  esac
 }
 
 # 1. ターゲットがhealthyなら成功
@@ -50,6 +53,8 @@ output="$(
 if [[ "$status" -eq 0 ]] ||
   ! grep -Fq "Simulated ALB API failure" <<<"$output"; then
   echo "FAIL: ALB API failure"
+  echo "Exit status: $status"
+  echo "Output: $output"
   exit 1
 fi
 
@@ -83,6 +88,8 @@ output="$(
 
 if [[ "$status" -eq 0 ]] ||
   ! grep -Fq "ALB targets did not become healthy within the timeout." <<<"$output" ||
+  ! grep -Fq "Target.FailedHealthChecks" <<<"$output" ||
+  ! grep -Fq "Health checks failed" <<<"$output" ||
   [[ "$(grep -Fxc "ALB_HEALTH_CHECKED" "$MOCK_LOG")" -ne 20 ]]; then
   echo "FAIL: ALB unhealthy timeout"
   echo "$output"
@@ -109,5 +116,80 @@ if [[ "$status" -eq 0 ]] ||
 fi
 
 echo "PASS: ALB empty target timeout"
+
+# 一時的なAWS APIエラーから回復したら成功
+: >"$MOCK_LOG"
+
+status=0
+output="$(
+  MOCK_ALB_HEALTH_STATUS=transient-failure \
+    wait_for_alb_targets_healthy 2>&1
+)" || status=$?
+
+if [[ "$status" -ne 0 ]] ||
+  [[ "$(grep -Fxc "ALB_HEALTH_CHECKED" "$MOCK_LOG")" -ne 2 ]]; then
+  echo "FAIL: ALB transient API failure recovery"
+  echo "$output"
+  exit 1
+fi
+
+echo "PASS: ALB transient API failure recovery"
+
+# 7. 認証期限切れの場合は再試行せず終了
+: >"$MOCK_LOG"
+
+status=0
+output="$(
+  MOCK_ALB_HEALTH_STATUS=auth-failure \
+    wait_for_alb_targets_healthy 2>&1
+)" || status=$?
+
+if [[ "$status" -eq 0 ]] ||
+  ! grep -Fq "ExpiredToken" <<<"$output" ||
+  [[ "$(grep -Fxc "ALB_HEALTH_CHECKED" "$MOCK_LOG")" -ne 1 ]]; then
+  echo "FAIL: ALB authentication failure"
+  echo "$output"
+  exit 1
+fi
+
+echo "PASS: ALB authentication failure"
+
+# 8. IAM権限不足の場合は再試行せず終了
+: >"$MOCK_LOG"
+
+status=0
+output="$(
+  MOCK_ALB_HEALTH_STATUS=access-denied \
+    wait_for_alb_targets_healthy 2>&1
+)" || status=$?
+
+if [[ "$status" -eq 0 ]] ||
+  ! grep -Fq "AccessDeniedException" <<<"$output" ||
+  [[ "$(grep -Fxc "ALB_HEALTH_CHECKED" "$MOCK_LOG")" -ne 1 ]]; then
+  echo "FAIL: ALB access denied"
+  echo "$output"
+  exit 1
+fi
+
+echo "PASS: ALB access denied"
+
+# 9. 一時的なAPIエラーが継続した場合は3回で終了
+: >"$MOCK_LOG"
+
+status=0
+output="$(
+  MOCK_ALB_HEALTH_STATUS=throttling-always \
+    wait_for_alb_targets_healthy 2>&1
+)" || status=$?
+
+if [[ "$status" -eq 0 ]] ||
+  ! grep -Fq "ALB health check API retries exhausted" <<<"$output" ||
+  [[ "$(grep -Fxc "ALB_HEALTH_CHECKED" "$MOCK_LOG")" -ne 3 ]]; then
+  echo "FAIL: ALB API retry exhaustion"
+  echo "$output"
+  exit 1
+fi
+
+echo "PASS: ALB API retry exhaustion"
 
 echo "All ALB health integration tests passed."
