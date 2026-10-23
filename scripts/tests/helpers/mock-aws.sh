@@ -319,14 +319,49 @@ case "${1:-} ${2:-}" in
   echo "ALB_HEALTH_CHECKED" >>"$MOCK_LOG"
 
   case "${MOCK_ALB_HEALTH_STATUS:-healthy}" in
+  transient-failure)
+    # ALBヘルスチェックの呼び出し回数を確認
+    check_count="$(
+      grep -Fxc "ALB_HEALTH_CHECKED" "$MOCK_LOG" || true
+    )"
+
+    if ((check_count == 1)); then
+      echo "ThrottlingException: Rate exceeded" >&2
+      exit 255
+    fi
+
+    printf '%s\n' '{"TargetHealthDescriptions":[{"TargetHealth":{"State":"healthy"}}]}'
+    ;;
   healthy)
     printf '%s\n' '{"TargetHealthDescriptions":[{"TargetHealth":{"State":"healthy"}}]}'
     ;;
   unhealthy)
-    printf '%s\n' '{"TargetHealthDescriptions":[{"TargetHealth":{"State":"unhealthy"}}]}'
+    printf '%s\n' '{
+    "TargetHealthDescriptions": [
+      {
+        "TargetHealth": {
+          "State": "unhealthy",
+          "Reason": "Target.FailedHealthChecks",
+          "Description": "Health checks failed"
+        }
+      }
+    ]
+  }'
     ;;
   empty)
     printf '%s\n' '{"TargetHealthDescriptions":[]}'
+    ;;
+  auth-failure)
+    echo "ExpiredToken: The security token included in the request is expired" >&2
+    exit 255
+    ;;
+  access-denied)
+    echo "AccessDeniedException: User is not authorized to perform this action" >&2
+    exit 254
+    ;;
+  throttling-always)
+    echo "ThrottlingException: Rate exceeded" >&2
+    exit 255
     ;;
   api-failure)
     echo "Simulated ALB API failure" >&2
