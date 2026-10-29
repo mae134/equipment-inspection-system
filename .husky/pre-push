@@ -1,3 +1,0 @@
-#!/usr/bin/env sh
-
-./mvnw test || exit 1

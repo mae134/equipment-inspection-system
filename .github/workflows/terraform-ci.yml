@@ -1,0 +1,51 @@
+name: Terraform CI
+
+on:
+  pull_request:
+    branches:
+      - main
+      - dev
+    paths:
+      - "terraform/**"
+      - ".github/workflows/terraform-ci.yml"
+
+  push:
+    branches:
+      - main
+      - dev
+    paths:
+      - "terraform/**"
+      - ".github/workflows/terraform-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate Terraform (${{ matrix.directory }})
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        directory:
+          - persistent
+          - runtime
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Check Terraform formatting
+        run: terraform fmt -check -recursive
+        working-directory: terraform/${{ matrix.directory }}
+
+      - name: Initialize Terraform
+        run: terraform init -backend=false -input=false
+        working-directory: terraform/${{ matrix.directory }}
+
+      - name: Validate Terraform
+        run: terraform validate
+        working-directory: terraform/${{ matrix.directory }}

@@ -1,14 +1,23 @@
-#!/usr/bin/env sh
+# ステージ済みのTerraformファイルを取得
+STAGED_TF_FILES=$(git diff --cached --name-only --diff-filter=ACMR |
+  grep -E '^terraform/.*\.tf$' || true)
 
-# コミット対象としてステージ済みのJavaファイルを取得
-STAGED_JAVA_FILES=$(git diff --cached --name-only --diff-filter=ACMR | grep '\.java$' || true)
+if [ -n "$STAGED_TF_FILES" ]; then
+  echo "Checking staged Terraform files..."
 
-# Javaファイルがステージされている場合のみSpotlessを実行
-if [ -n "$STAGED_JAVA_FILES" ]; then
-  ./mvnw spotless:apply || exit 1
+  # 未ステージの変更があるファイルは自動整形しない
+  echo "$STAGED_TF_FILES" | while IFS= read -r file; do
+    if ! git diff --quiet -- "$file"; then
+      echo "Error: Unstaged changes detected in $file"
+      echo "Stage or stash those changes before committing."
+      exit 1
+    fi
+  done || exit 1
 
-  # 最初からステージされていたJavaファイルだけ再ステージ
-  echo "$STAGED_JAVA_FILES" | xargs git add
+  echo "Formatting staged Terraform files..."
 
-  ./mvnw spotless:check || exit 1
+  echo "$STAGED_TF_FILES" | while IFS= read -r file; do
+    terraform fmt "$file" || exit 1
+    git add -- "$file" || exit 1
+  done || exit 1
 fi
