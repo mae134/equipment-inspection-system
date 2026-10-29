@@ -1,0 +1,235 @@
+name: Deploy to AWS
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "src/**"
+      - "pom.xml"
+      - "Dockerfile"
+      - "mvnw"
+      - "mvnw.cmd"
+      - ".mvn/**"
+      - ".github/workflows/deploy.yml"
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: aws-production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to ECS
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Grant execute permission to Maven Wrapper
+        run: chmod +x mvnw
+
+      - name: Verify application
+        run: ./mvnw -B verify
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::339741260090:role/equipment-inspection-github-actions-deploy-role
+          aws-region: ap-northeast-1
+
+      - name: Check ECS service availability
+        id: ecs-check
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          CLUSTER="equipment-inspection-cluster"
+          SERVICE="equipment-inspection-service"
+
+          echo "Checking ECS service..."
+
+          RESPONSE="$(aws ecs describe-services \
+            --cluster "$CLUSTER" \
+            --services "$SERVICE" \
+            --output json)"
+
+          FAILURE_REASON="$(jq -r '.failures[0].reason // empty' <<< "$RESPONSE")"
+
+          if [[ -n "$FAILURE_REASON" && "$FAILURE_REASON" != "MISSING" ]]; then
+            echo "ERROR: ECS service lookup failed: $FAILURE_REASON" >&2
+            exit 1
+          fi
+
+          STATUS="$(jq -r '.services[0].status // empty' <<< "$RESPONSE")"
+
+          if [[ "$STATUS" == "ACTIVE" ]]; then
+            echo "Waiting for ECS service to stabilize..."
+
+            aws ecs wait services-stable \
+              --cluster "$CLUSTER" \
+              --services "$SERVICE"
+
+            echo "ECS service is stable."
+            echo "available=true" >> "$GITHUB_OUTPUT"
+
+          elif [[ -z "$STATUS" && "$FAILURE_REASON" == "MISSING" ]] || \
+             [[ "$STATUS" == "INACTIVE" || "$STATUS" == "DRAINING" ]]; then
+            echo "ECS service is not active. Skipping deployment."
+            echo "available=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ERROR: Unexpected ECS service status: $STATUS" >&2
+            exit 1
+          fi
+
+      - name: Login to Amazon ECR
+        if: steps.ecs-check.outputs.available == 'true'
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push Docker image
+        if: steps.ecs-check.outputs.available == 'true'
+        env:
+          ECR_REGISTRY: ${{ steps.ecr-login.outputs.registry }}
+          ECR_REPOSITORY: equipment-inspection-app
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+
+          IMAGE_URI="$ECR_REGISTRY/$ECR_REPOSITORY"
+
+          docker build \
+            -t "$IMAGE_URI:$IMAGE_TAG" \
+            -t "$IMAGE_URI:latest" \
+            .
+
+          docker push "$IMAGE_URI:$IMAGE_TAG"
+          docker push "$IMAGE_URI:latest"
+
+          echo "IMAGE_URI=$IMAGE_URI:$IMAGE_TAG" >> "$GITHUB_ENV"
+
+      - name: Register new ECS task definition
+        if: steps.ecs-check.outputs.available == 'true'
+        env:
+          CLUSTER: equipment-inspection-cluster
+          SERVICE: equipment-inspection-service
+          CONTAINER_NAME: equipment-inspection-app
+        run: |
+          set -euo pipefail
+
+          echo "Retrieving ECS service task definition..."
+
+          CURRENT_TASK_ARN="$(aws ecs describe-services \
+            --cluster "$CLUSTER" \
+            --services "$SERVICE" \
+            --query 'services[0].taskDefinition' \
+            --output text)"
+
+          if [[ -z "$CURRENT_TASK_ARN" || "$CURRENT_TASK_ARN" == "None" ]]; then
+            echo "ERROR: Task definition not found." >&2
+            exit 1
+          fi
+
+          aws ecs describe-task-definition \
+            --task-definition "$CURRENT_TASK_ARN" \
+            --query 'taskDefinition' \
+            --output json > task-definition.json
+
+          echo "Validating container name..."
+
+          jq -e \
+            --arg container "$CONTAINER_NAME" \
+            'any(.containerDefinitions[]; .name == $container)' \
+            task-definition.json >/dev/null
+
+          echo "Updating Docker image..."
+
+          jq \
+            --arg container "$CONTAINER_NAME" \
+            --arg image "$IMAGE_URI" \
+            '{
+              family,
+              taskRoleArn,
+              executionRoleArn,
+              networkMode,
+              containerDefinitions,
+              volumes,
+              placementConstraints,
+              requiresCompatibilities,
+              cpu,
+              memory,
+              runtimePlatform,
+              ephemeralStorage,
+              pidMode,
+              ipcMode,
+              proxyConfiguration,
+              inferenceAccelerators
+            }
+            | with_entries(select(.value != null))
+            | .containerDefinitions |= map(
+                if .name == $container
+                then .image = $image
+                else .
+                end
+              )' task-definition.json > task-definition-updated.json
+
+          echo "Registering new task definition..."
+
+          TASK_DEFINITION_ARN="$(aws ecs register-task-definition \
+            --cli-input-json file://task-definition-updated.json \
+            --query 'taskDefinition.taskDefinitionArn' \
+            --output text)"
+
+          echo "TASK_DEFINITION_ARN=$TASK_DEFINITION_ARN" >> "$GITHUB_ENV"
+
+          echo "Registered: $TASK_DEFINITION_ARN"
+
+      - name: Deploy ECS service
+        if: steps.ecs-check.outputs.available == 'true'
+        env:
+          ECS_CLUSTER: equipment-inspection-cluster
+          ECS_SERVICE: equipment-inspection-service
+        run: |
+          set -euo pipefail
+
+          echo "Updating ECS service..."
+
+          aws ecs update-service \
+            --cluster "$ECS_CLUSTER" \
+            --service "$ECS_SERVICE" \
+            --task-definition "$TASK_DEFINITION_ARN" \
+            --output json > /dev/null
+
+          echo "Waiting for ECS service to stabilize..."
+
+          aws ecs wait services-stable \
+            --cluster "$ECS_CLUSTER" \
+            --services "$ECS_SERVICE"
+
+          echo "Verifying deployed task definition..."
+
+          DEPLOYED_TASK_ARN="$(aws ecs describe-services \
+            --cluster "$ECS_CLUSTER" \
+            --services "$ECS_SERVICE" \
+            --query 'services[0].taskDefinition' \
+            --output text)"
+
+          if [[ "$DEPLOYED_TASK_ARN" != "$TASK_DEFINITION_ARN" ]]; then
+            echo "ERROR: ECS service is not using the expected task definition." >&2
+            exit 1
+          fi
+
+          echo "Deployment completed: $DEPLOYED_TASK_ARN"

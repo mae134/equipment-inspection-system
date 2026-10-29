@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="UTF-8" />
+    <title>点検履歴一覧</title>
+    <link rel="stylesheet" th:href="@{/css/inspection-history.css}" />
+  </head>
+  <body>
+    <h1>点検履歴一覧</h1>
+
+    <section>
+      <p>
+        設備コード:
+        <span th:text="${equipment.equipmentCode}"></span>
+      </p>
+      <p>
+        設備名:
+        <span th:text="${equipment.name}"></span>
+      </p>
+    </section>
+
+    <p th:if="${#lists.isEmpty(inspectionHistory)}">点検履歴はありません。</p>
+
+    <table th:unless="${#lists.isEmpty(inspectionHistory)}">
+      <thead>
+        <tr>
+          <th>点検日時</th>
+          <th>点検者</th>
+          <th>総合コメント</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr th:each="history : ${inspectionHistory}">
+          <td
+            th:text="${#temporals.format(history.inspectionAt, 'yyyy-MM-dd HH:mm')}"
+          ></td>
+          <td th:text="${history.inspectorName}"></td>
+          <td th:text="${history.comment != null ? history.comment : '-'}"></td>
+          <td>
+            <a th:href="@{/inspections/{id}(id=${history.inspectionId})}">
+              詳細
+            </a>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p>
+      <a th:href="@{/dashboard}">ダッシュボードへ戻る</a>
+    </p>
+  </body>
+</html>

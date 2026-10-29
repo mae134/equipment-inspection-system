@@ -1,0 +1,143 @@
+{
+	"Name": "My Estimate",
+	"Total Cost": {
+		"monthly": "72.95",
+		"upfront": "0.00",
+		"12 months": "875.40"
+	},
+	"Metadata": {
+		"Currency": "USD",
+		"Locale": "en_US",
+		"Created On": "2026/9/6 18:25:45",
+		"Legal Disclaimer": "AWS Pricing Calculator provides only an estimate of your AWS fees and doesn't include any taxes that might apply. Your actual fees depend on a variety of factors, including your actual usage of AWS services.",
+		"Share Url": "https://calculator.aws/#/estimate?utm_source=chatgpt.com&id=949ced3b0586585ee1619237df2e2130a81133f1"
+	},
+	"Groups": {
+		"Services": [
+			{
+				"Service Name": "AWS Fargate",
+				"Region": "Asia Pacific (Osaka)",
+				"Status": "",
+				"Service Cost": {
+					"monthly": "22.50",
+					"upfront": "0.00",
+					"12 months": "270.00"
+				},
+				"Properties": {
+					"Operating system": "Linux",
+					"CPU Architecture": "x86",
+					"Average duration": "24 hours",
+					"Number of tasks or pods": "1 per day",
+					"Amount of ephemeral storage allocated for Amazon ECS": "20 GB",
+					"Amount of memory allocated": "1 GB"
+				}
+			},
+			{
+				"Service Name": "Amazon RDS for PostgreSQL",
+				"Region": "Asia Pacific (Osaka)",
+				"Status": "",
+				"Service Cost": {
+					"monthly": "21.01",
+					"upfront": "0.00",
+					"12 months": "252.12"
+				},
+				"Properties": {
+					"Storage amount": "20 GB",
+					"Storage volume": "General Purpose SSD (gp3)",
+					"Nodes": "1",
+					"Instance Type": "db.t4g.micro",
+					"Utilization (On-Demand only)": "100 %Utilized/Month",
+					"Deployment Option": "Single-AZ",
+					"Pricing Model": "OnDemand",
+					"Additional backup storage": "0 GB",
+					"Total Size of Backup Processed for Export (GB)": "0 per month"
+				}
+			},
+			{
+				"Service Name": "Application Load Balancer",
+				"Region": "Asia Pacific (Osaka)",
+				"Status": "",
+				"Service Cost": {
+					"monthly": "17.97",
+					"upfront": "0.00",
+					"12 months": "215.64"
+				},
+				"Properties": {
+					"Number of Application Load Balancers": "1"
+				}
+			},
+			{
+				"Service Name": "Amazon Elastic Container Registry",
+				"Region": "Asia Pacific (Osaka)",
+				"Status": "",
+				"Service Cost": {
+					"monthly": "0.10",
+					"upfront": "0.00",
+					"12 months": "1.20"
+				},
+				"Properties": {
+					"Amount of data stored": "1 GB per month"
+				}
+			},
+			{
+				"Service Name": "Amazon CloudWatch",
+				"Region": "Asia Pacific (Osaka)",
+				"Status": "",
+				"Service Cost": {
+					"monthly": "0.76",
+					"upfront": "0.00",
+					"12 months": "9.18"
+				},
+				"Properties": {
+					"Number of mobile OTEL events and spans or spans per visit": "70",
+					"Mobile sampling rate": "1",
+					"Standard Logs: Data Ingested": "1 GB"
+				}
+			},
+			{
+				"Service Name": "Public IPv4 Address",
+				"Region": "Asia Pacific (Osaka)",
+				"Status": "",
+				"Service Cost": {
+					"monthly": "3.65",
+					"upfront": "0.00",
+					"12 months": "43.80"
+				},
+				"Properties": {
+					"Number of In-use public IPv4 addresses": "1",
+					"Number of Idle public IPv4 addresses": "0"
+				}
+			},
+			{
+				"Service Name": "AWS Web Application Firewall (WAF)",
+				"Region": "Asia Pacific (Osaka)",
+				"Status": "",
+				"Service Cost": {
+					"monthly": "6.06",
+					"upfront": "0.00",
+					"12 months": "72.72"
+				},
+				"Properties": {
+					"Number of Web Access Control Lists (Web ACLs) utilized": "1 per month",
+					"Number of Rules added per Web ACL": "1 per month",
+					"Number of Rule Groups per Web ACL": "0 per month",
+					"Number of Rules inside each Rule Group": "0 per month",
+					"Number of Managed Rule Groups per Web ACL": "0 per month"
+				}
+			},
+			{
+				"Service Name": "Amazon Route 53",
+				"Region": "Asia Pacific (Osaka)",
+				"Status": "",
+				"Service Cost": {
+					"monthly": "0.90",
+					"upfront": "0.00",
+					"12 months": "10.80"
+				},
+				"Properties": {
+					"Hosted Zones": "1"
+				}
+			}
+		]
+	}
+}

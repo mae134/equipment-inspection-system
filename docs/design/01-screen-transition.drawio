@@ -1,0 +1,147 @@
+<mxfile host="app.diagrams.net" agent="ChatGPT">
+  <diagram id="screen-transition-v1" name="画面遷移図">
+    <mxGraphModel dx="2054" dy="1137" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" parent="1" style="text;html=1;align=left;verticalAlign=middle;fontSize=24;fontStyle=1;fontFamily=Helvetica;" value="設備点検管理システム&lt;br&gt;&lt;b&gt;画面遷移図&lt;/b&gt;" vertex="1">
+          <mxGeometry height="70" width="400" x="40" y="30" as="geometry" />
+        </mxCell>
+        <mxCell id="login" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=16;fontStyle=1;arcSize=12;strokeWidth=1.5;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="[01] ログイン" vertex="1">
+          <mxGeometry height="80" width="240" x="700" y="70" as="geometry" />
+        </mxCell>
+        <mxCell id="equipment_list" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=16;fontStyle=1;arcSize=12;strokeWidth=1.5;fillColor=#d5e8d4;strokeColor=#82b366;" value="[02] 設備一覧" vertex="1">
+          <mxGeometry height="80" width="240" x="700" y="230" as="geometry" />
+        </mxCell>
+        <mxCell id="equipment_create" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=16;fontStyle=1;arcSize=12;strokeWidth=1.5;fillColor=#fff2cc;strokeColor=#d6b656;" value="[03] 設備登録" vertex="1">
+          <mxGeometry height="80" width="240" x="250" y="390" as="geometry" />
+        </mxCell>
+        <mxCell id="equipment_detail" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=16;fontStyle=1;arcSize=12;strokeWidth=1.5;fillColor=#d5e8d4;strokeColor=#82b366;" value="[04] 設備詳細" vertex="1">
+          <mxGeometry height="80" width="240" x="700" y="390" as="geometry" />
+        </mxCell>
+        <mxCell id="equipment_edit" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=16;fontStyle=1;arcSize=12;strokeWidth=1.5;fillColor=#fff2cc;strokeColor=#d6b656;" value="[05] 設備編集" vertex="1">
+          <mxGeometry height="80" width="240" x="1150" y="390" as="geometry" />
+        </mxCell>
+        <mxCell id="item_settings" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=16;fontStyle=1;arcSize=12;strokeWidth=1.5;fillColor=#ffe6cc;strokeColor=#d79b00;" value="[06] 点検項目設定" vertex="1">
+          <mxGeometry height="80" width="240" x="300" y="650" as="geometry" />
+        </mxCell>
+        <mxCell id="inspection" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=16;fontStyle=1;arcSize=12;strokeWidth=1.5;fillColor=#e1d5e7;strokeColor=#9673a6;" value="[07] 点検実施" vertex="1">
+          <mxGeometry height="80" width="240" x="650" y="650" as="geometry" />
+        </mxCell>
+        <mxCell id="history_list" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=16;fontStyle=1;arcSize=12;strokeWidth=1.5;fillColor=#d5e8d4;strokeColor=#82b366;" value="[08] 点検履歴一覧" vertex="1">
+          <mxGeometry height="80" width="240" x="1000" y="650" as="geometry" />
+        </mxCell>
+        <mxCell id="history_detail" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=16;fontStyle=1;arcSize=12;strokeWidth=1.5;fillColor=#f8cecc;strokeColor=#b85450;" value="[09] 点検履歴詳細" vertex="1">
+          <mxGeometry height="80" width="240" x="1350" y="650" as="geometry" />
+        </mxCell>
+        <mxCell id="e01" edge="1" parent="1" source="login" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=1.5;fontSize=13;labelBackgroundColor=#ffffff;" target="equipment_list" value="ログイン成功">
+          <mxGeometry relative="1" y="-10" as="geometry" />
+        </mxCell>
+        <mxCell id="e02" edge="1" parent="1" source="equipment_list" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=1.5;fontSize=13;labelBackgroundColor=#ffffff;" target="equipment_create" value="新規登録">
+          <mxGeometry relative="1" x="-0.2" y="-10" as="geometry">
+            <Array as="points">
+              <mxPoint x="600" y="270" />
+              <mxPoint x="600" y="430" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e03" edge="1" parent="1" source="equipment_list" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=1.5;fontSize=13;labelBackgroundColor=#ffffff;" target="equipment_detail" value="詳細">
+          <mxGeometry relative="1" y="-10" as="geometry" />
+        </mxCell>
+        <mxCell id="e04" edge="1" parent="1" source="equipment_detail" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=1.5;fontSize=13;labelBackgroundColor=#ffffff;" target="equipment_edit" value="編集">
+          <mxGeometry relative="1" y="-10" as="geometry" />
+        </mxCell>
+        <mxCell id="e05" edge="1" parent="1" source="equipment_detail" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=1.5;fontSize=13;labelBackgroundColor=#ffffff;" target="item_settings" value="点検項目設定">
+          <mxGeometry relative="1" x="-0.2" y="-10" as="geometry">
+            <Array as="points">
+              <mxPoint x="620" y="520" />
+              <mxPoint x="420" y="520" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e06" edge="1" parent="1" source="equipment_detail" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=1.5;fontSize=13;labelBackgroundColor=#ffffff;" target="inspection" value="点検実施">
+          <mxGeometry relative="1" y="-10" as="geometry">
+            <Array as="points">
+              <mxPoint x="770" y="540" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e07" edge="1" parent="1" source="equipment_detail" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=1.5;fontSize=13;labelBackgroundColor=#ffffff;" target="history_list" value="点検履歴一覧">
+          <mxGeometry relative="1" x="0.15" y="-10" as="geometry">
+            <Array as="points">
+              <mxPoint x="1020" y="520" />
+              <mxPoint x="1120" y="520" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e08" edge="1" parent="1" source="history_list" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=1.5;fontSize=13;labelBackgroundColor=#ffffff;" target="history_detail" value="詳細">
+          <mxGeometry relative="1" y="-10" as="geometry" />
+        </mxCell>
+        <mxCell id="r01" edge="1" parent="1" source="equipment_create" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=1.25;dashed=1;strokeColor=#666666;fontColor=#555555;fontSize=12;labelBackgroundColor=#ffffff;" target="equipment_list" value="保存 / キャンセル">
+          <mxGeometry relative="1" x="-0.1" y="10" as="geometry">
+            <Array as="points">
+              <mxPoint x="250" y="340" />
+              <mxPoint x="620" y="340" />
+              <mxPoint x="620" y="250" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="r02" edge="1" parent="1" source="equipment_detail" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=1.25;dashed=1;strokeColor=#666666;fontColor=#555555;fontSize=12;labelBackgroundColor=#ffffff;" target="equipment_list" value="戻る">
+          <mxGeometry relative="1" x="0.2" y="10" as="geometry">
+            <Array as="points">
+              <mxPoint x="980" y="350" />
+              <mxPoint x="980" y="270" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="r03" edge="1" parent="1" source="equipment_edit" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=1.25;dashed=1;strokeColor=#666666;fontColor=#555555;fontSize=12;labelBackgroundColor=#ffffff;" target="equipment_detail" value="保存 / キャンセル">
+          <mxGeometry relative="1" y="10" as="geometry">
+            <Array as="points">
+              <mxPoint x="1270" y="500" />
+              <mxPoint x="820" y="500" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="r04" edge="1" parent="1" source="item_settings" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=1.25;dashed=1;strokeColor=#666666;fontColor=#555555;fontSize=12;labelBackgroundColor=#ffffff;" target="equipment_detail" value="戻る">
+          <mxGeometry relative="1" x="-0.1" y="10" as="geometry">
+            <Array as="points">
+              <mxPoint x="420" y="780" />
+              <mxPoint x="610" y="780" />
+              <mxPoint x="610" y="450" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="r05" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=1.25;dashed=1;strokeColor=#666666;fontColor=#555555;fontSize=12;labelBackgroundColor=#ffffff;" value="保存 / キャンセル">
+          <mxGeometry relative="1" x="0.1" y="10" as="geometry">
+            <Array as="points">
+              <mxPoint x="760" y="820" />
+              <mxPoint x="910" y="820" />
+            </Array>
+            <mxPoint x="760" y="730" as="sourcePoint" />
+            <mxPoint x="910" y="470" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="r06" edge="1" parent="1" source="history_list" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=1.25;dashed=1;strokeColor=#666666;fontColor=#555555;fontSize=12;labelBackgroundColor=#ffffff;" target="equipment_detail" value="戻る">
+          <mxGeometry relative="1" y="10" as="geometry">
+            <Array as="points">
+              <mxPoint x="1120" y="850" />
+              <mxPoint x="980" y="850" />
+              <mxPoint x="980" y="450" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="r07" edge="1" parent="1" source="history_detail" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=1.25;dashed=1;strokeColor=#666666;fontColor=#555555;fontSize=12;labelBackgroundColor=#ffffff;" target="history_list" value="戻る">
+          <mxGeometry relative="1" y="10" as="geometry">
+            <Array as="points">
+              <mxPoint x="1470" y="790" />
+              <mxPoint x="1120" y="790" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="note" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=13;align=left;spacingLeft=12;spacingTop=8;" value="※ 実線：主要な画面遷移&lt;br&gt;※ 破線：保存・キャンセル・戻る操作&lt;br&gt;※ [01]〜[09] は画面設計書と共通の画面番号&lt;br&gt;※ ログイン後のみ各業務画面へアクセス可能" vertex="1">
+          <mxGeometry height="120" width="520" x="60" y="880" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
