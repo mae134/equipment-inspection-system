@@ -28,7 +28,7 @@ data "aws_iam_policy_document" "github_actions_assume_role" {
       variable = "token.actions.githubusercontent.com:sub"
 
       values = [
-        "repo:mae134/equipment-inspection-system:ref:refs/heads/main"
+        "repo:mae134@166838175/equipment-inspection-system@1311684664:ref:refs/heads/main"
       ]
     }
   }
