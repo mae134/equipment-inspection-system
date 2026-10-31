@@ -1,0 +1,157 @@
+name: Conditional CI
+
+on:
+  pull_request:
+    branches:
+      - main
+      - dev
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  detect-changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+
+    outputs:
+      java: ${{ steps.filter.outputs.java }}
+      terraform: ${{ steps.filter.outputs.terraform }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Detect changed files
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            java:
+              - 'src/**'
+              - 'pom.xml'
+              - 'mvnw'
+              - 'mvnw.cmd'
+              - '.mvn/**'
+              - '.github/workflows/ci.yml'
+              - '.github/workflows/conditional-ci.yml'
+
+            terraform:
+              - 'terraform/**'
+              - '.github/workflows/terraform-ci.yml'
+              - '.github/workflows/conditional-ci.yml'
+  java-verify:
+    name: Java Verify
+    needs: detect-changes
+    if: needs.detect-changes.outputs.java == 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Grant execute permission to Maven Wrapper
+        run: chmod +x mvnw
+
+      - name: Check code formatting
+        run: ./mvnw spotless:check
+
+      - name: Verify project
+        run: ./mvnw verify
+
+  terraform-validate:
+    name: Terraform Validate (${{ matrix.directory }})
+    needs: detect-changes
+    if: needs.detect-changes.outputs.terraform == 'true'
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        directory:
+          - persistent
+          - runtime
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Check Terraform formatting
+        run: terraform fmt -check -recursive
+        working-directory: terraform/${{ matrix.directory }}
+
+      - name: Initialize Terraform
+        run: terraform init -backend=false -input=false
+        working-directory: terraform/${{ matrix.directory }}
+
+      - name: Validate Terraform
+        run: terraform validate
+        working-directory: terraform/${{ matrix.directory }}
+
+  ci-gate:
+    name: CI Gate
+    needs:
+      - detect-changes
+      - java-verify
+      - terraform-validate
+    if: always()
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Evaluate CI results
+        env:
+          DETECT_RESULT: ${{ needs.detect-changes.result }}
+          JAVA_REQUIRED: ${{ needs.detect-changes.outputs.java }}
+          TERRAFORM_REQUIRED: ${{ needs.detect-changes.outputs.terraform }}
+          JAVA_RESULT: ${{ needs.java-verify.result }}
+          TERRAFORM_RESULT: ${{ needs.terraform-validate.result }}
+        run: |
+          set -euo pipefail
+
+          if [[ "$DETECT_RESULT" != "success" ]]; then
+            echo "::error::Change detection failed or was cancelled."
+            exit 1
+          fi
+
+          if [[ "$JAVA_REQUIRED" != "true" && "$JAVA_REQUIRED" != "false" ]]; then
+            echo "::error::Invalid Java change detection result."
+            exit 1
+          fi
+
+          if [[ "$TERRAFORM_REQUIRED" != "true" && "$TERRAFORM_REQUIRED" != "false" ]]; then
+            echo "::error::Invalid Terraform change detection result."
+            exit 1
+          fi
+
+          if [[ "$JAVA_REQUIRED" == "true" && "$JAVA_RESULT" != "success" ]]; then
+            echo "::error::Java verification did not succeed: $JAVA_RESULT"
+            exit 1
+          fi
+
+          if [[ "$TERRAFORM_REQUIRED" == "true" && "$TERRAFORM_RESULT" != "success" ]]; then
+            echo "::error::Terraform validation did not succeed: $TERRAFORM_RESULT"
+            exit 1
+          fi
+
+          if [[ "$JAVA_REQUIRED" == "false" && "$JAVA_RESULT" != "skipped" ]]; then
+            echo "::error::Unexpected Java verification result: $JAVA_RESULT"
+            exit 1
+          fi
+
+          if [[ "$TERRAFORM_REQUIRED" == "false" && "$TERRAFORM_RESULT" != "skipped" ]]; then
+            echo "::error::Unexpected Terraform validation result: $TERRAFORM_RESULT"
+            exit 1
+          fi
+
+          echo "All required CI checks passed."
