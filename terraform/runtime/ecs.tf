@@ -1,3 +1,4 @@
+# CI test: Terraform-only change detection
 resource "aws_ecs_cluster" "main" {
   name = "equipment-inspection-cluster"
 
