@@ -13,6 +13,16 @@ resource "aws_lb" "main" {
   ]
 
   ip_address_type = "ipv4"
+
+  health_check_logs {
+    enabled = true
+    bucket  = aws_s3_bucket.alb_health_check_logs.bucket
+    prefix  = "health-check"
+  }
+
+  depends_on = [
+    aws_s3_bucket_policy.alb_health_check_logs
+  ]
 }
 
 resource "aws_lb_target_group" "app" {
