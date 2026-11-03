@@ -193,13 +193,13 @@ Snapshot一覧の対話選択は実装しない。
 
 Destroy / Restoreスクリプトでは、主要な実行環境を固定値で管理する。
 
-- AWS Profile：`terraform-execution`
+- AWS CLI認証：事前に設定した認証先を使用（具体的なプロファイル名は記載しない）
 - AWS Region：`ap-northeast-1`
 - AWS Account ID：想定アカウントと照合
-- IAM Role：`terraform-execution-role`
+- IAM Role：スクリプトが検証する想定Role
 - Terraform Runtime Directory：`terraform/runtime/`
 
-AWS ProfileとRoleの設定・認証情報はAWS CLI側で管理する。
+AWSの認証情報はローカルのAWS CLI設定で管理し、ドキュメントやGitには記載しない。
 
 Restore時のDB Passwordは`openssl`で生成し、一時的なTerraform変数として渡す。
 
@@ -232,7 +232,7 @@ Destroy / Restoreの両スクリプトで、Terraform実行前に以下を確認
 
 AWS STSで取得したAccount IDとRole ARNが想定値と一致しない場合は処理を中断する。
 
-AWS CLI ProfileとRegionはスクリプト内で明示する。
+AWS CLIの認証設定とRegionはスクリプトの実装に従う。ドキュメント内の手動CLI例は、事前に認証済みの実行環境を前提とする。
 
 Terraform実行用IAM RoleはBootstrap Resourceとして保持する。
 
@@ -241,7 +241,7 @@ Terraform実行用IAM RoleはBootstrap Resourceとして保持する。
 Restoreは以下の2モードをサポートする。
 
 ```text
---snapshot-id ID
+\--snapshot-id ID
     ↓
 SnapshotからRDS復元
     ↓
@@ -253,7 +253,7 @@ SSM SecureString更新
 ```
 
 ```text
---new-db
+\--new-db
     ↓
 新規RDS作成
     ↓
@@ -274,14 +274,21 @@ ECR RepositoryはRuntime ResourceとしてTerraformから再作成する。
 
 Restore時は次の処理を実行する。
 
-1. Maven Wrapperで`verify`を実行してJARを生成
-2. Docker ImageをBuild
-3. AWS CLIでECR認証情報を取得
-4. Docker Login
-5. ECRへImageをPush
-6. ECS Serviceのdesired countを1に変更
-7. ECS Serviceの安定稼働を待機
-8. ALB Target Healthを確認
+1\\. Maven Wrapperで`verify`を実行してJARを生成
+
+2\\. Docker ImageをBuild
+
+3\\. AWS CLIでECR認証情報を取得
+
+4\\. Docker Login
+
+5\\. ECRへImageをPush
+
+6\\. ECS Serviceのdesired countを1に変更
+
+7\\. ECS Serviceの安定稼働を待機
+
+8\\. ALB Target Healthを確認
 
 ECR Imageは既存のECS Task Definitionに合わせて`latest`タグを使用する。
 
@@ -335,6 +342,67 @@ SnapshotやHosted Zoneの対話選択は行わない。
 
 以下のコマンドは、リポジトリのルートディレクトリから実行する。
 
+### 14.0 実行前の事前確認（Restore / Destroy共通）
+
+以下はリポジトリのルートディレクトリから実行する。\***\*認証先・Terraformの状態が不明な場合は構築・削除を開始しない。\*\***
+
+#### 1. AWS認証と対象Regionの確認
+
+```bash
+aws sts get-caller-identity
+aws configure get region
+```
+
+- AWS AccountとIAM Roleが想定どおりか確認する。
+- 対象Regionは `ap-northeast-1`。`aws configure get region` が空の場合は、実行時に `--region ap-northeast-1` を指定する。
+- 手動CLIのデフォルト認証先と、スクリプト内で指定する認証先は異なる場合がある。\***\*スクリプトが使う認証先の確認も別途必要\*\***。
+- 認証先が想定と異なる場合は実行しない。アクセスキーなどの認証情報は出力・共有しない。
+
+#### 2. Terraformと依存コマンドの確認
+
+```bash
+terraform -chdir=terraform/runtime version
+terraform -chdir=terraform/runtime state list
+aws --version
+jq --version
+openssl version
+```
+
+- Terraform Stateの対象リソースを把握する。Stateが空でも、AWS上のリソースが必ず存在しないとは限らない。
+- Terraformの初期化が必要な場合は、既存のBackend・Provider設定を確認してから実施する。
+- `state list` は読み取り専用。実際の変更内容はスクリプトが生成するPlanで確認する。
+
+#### 3. Restore前のDocker Desktop・Java・Maven確認
+
+RestoreではTerraform Apply後にMaven Build、Docker Build、ECR Pushを行う。\***\*Docker Engineが利用できないと、AWSリソース構築後に失敗する可能性がある。\*\***
+
+1. WindowsでDocker Desktopを起動し、Engineの起動完了を待つ。
+2. Docker DesktopのWSL Integrationで利用中のUbuntu環境が有効か確認する。
+3. WSLのリポジトリルートで以下を実行する。
+
+```bash
+docker info > /dev/null && echo "OK: Docker Engine is running"
+docker version
+./mvnw --version
+```
+
+- `docker info` が失敗した場合はRestoreを実行しない。
+- Java 21とMaven Wrapperが利用可能であることを確認する。
+- Destroyは通常Docker Engineを必要としない。
+
+#### 4. Restore実行前のPlan確認
+
+Snapshotから復元する場合は、14.7節で対象Snapshotが `available` であることを確認する。新規DBを作成する場合は、既存データを引き継がない点を確認する。
+
+```bash
+\# 新規RDSの構築計画を確認（Applyしない）
+bash scripts/aws/restore-aws-environment.sh --new-db
+\# Snapshot復元の計画を確認（SNAPSHOT_IDは実際のIDに置き換える）
+bash scripts/aws/restore-aws-environment.sh --snapshot-id SNAPSHOT_ID
+```
+
+\***\*この節のコマンドは環境を構築・削除しない。\*\*** 変更を伴う操作は14.1〜14.4節に従う。
+
 ### 14.1 Destroy（RDS Snapshot作成あり）
 
 ```bash
@@ -363,13 +431,13 @@ bash scripts/aws/destroy-aws-environment.sh --skip-snapshot
 ```bash
 CONFIRM_AWS_RESTORE=YES \
   bash scripts/aws/restore-aws-environment.sh \
-    --snapshot-id <SNAPSHOT_ID> \
+    --snapshot-id SNAPSHOT_ID \
     --apply
 ```
 
 - 指定したSnapshotからRDSを復元する。
 - Terraform Apply後、DB Password設定、アプリケーションBuild、ECR Push、ECS起動、ALB Health確認を実行する。
-- `<SNAPSHOT_ID>`は実際に保存されたSnapshot Identifierに置き換える。
+- `SNAPSHOT_ID`は実際に保存されたSnapshot Identifierに置き換える。
 
 ### 14.4 Restore（新規RDS作成）
 
@@ -390,7 +458,7 @@ Snapshotからの復元計画を確認する場合：
 
 ```bash
 bash scripts/aws/restore-aws-environment.sh \
-  --snapshot-id <SNAPSHOT_ID>
+  --snapshot-id SNAPSHOT_ID
 ```
 
 新規RDS作成の計画を確認する場合：
@@ -457,7 +525,6 @@ sys     0m2.145s
 
 ```bash
 aws rds describe-db-snapshots \
-  --profile terraform-execution \
   --region ap-northeast-1 \
   --snapshot-type manual \
   --query 'DBSnapshots[*].[DBSnapshotIdentifier,DBInstanceIdentifier,Status,SnapshotCreateTime]' \
@@ -472,9 +539,8 @@ aws rds describe-db-snapshots \
 
 ```bash
 aws rds describe-db-snapshots \
-  --profile terraform-execution \
   --region ap-northeast-1 \
-  --db-snapshot-identifier equipment-inspection-db-manual-20261022-121956 \
+  --db-snapshot-identifier SNAPSHOT_ID \
   --query 'DBSnapshots[0].[DBSnapshotIdentifier,Status,SnapshotType]' \
   --output table
 ```
@@ -494,18 +560,17 @@ aws rds describe-db-snapshots \
 
 手動スナップショットはRDSインスタンス削除後も保持されるため、不要になった場合は明示的に削除する。
 
-**1. スナップショット一覧を確認**
+\***\*1. スナップショット一覧を確認\*\***
 
 ```bash
 aws rds describe-db-snapshots \
-  --profile terraform-execution \
   --region ap-northeast-1 \
   --snapshot-type manual \
   --query 'DBSnapshots[*].[DBSnapshotIdentifier,Status,SnapshotCreateTime]' \
   --output table
 ```
 
-**2. 削除対象を確認**
+\***\*2. 削除対象を確認\*\***
 
 削除前に、以下を確認する。
 
@@ -513,33 +578,93 @@ aws rds describe-db-snapshots \
 - 保存が必要なデータが含まれていないこと
 - スナップショットIDが正しいこと
 
-**3. スナップショットを削除**
+\***\*3. スナップショットを削除\*\***
 
 ```bash
 aws rds delete-db-snapshot \
-  --profile terraform-execution \
   --region ap-northeast-1 \
   --db-snapshot-identifier SNAPSHOT_ID
 ```
 
 `SNAPSHOT_ID` は実際のスナップショットIDに置き換える。
 
-**4. 削除結果を確認**
+\***\*4. 削除結果を確認\*\***
 
 ```bash
 aws rds describe-db-snapshots \
-  --profile terraform-execution \
   --region ap-northeast-1 \
   --snapshot-type manual \
   --output table
 ```
 
-**注意事項**
+\***\*注意事項\*\***
 
 - スナップショットの削除は元に戻せない。
 - 削除後は、そのスナップショットからRDSを復元できない。
 - 削除対象がTerraform管理下にある場合は、Terraform側の管理方法も確認する。
 - 保存料金はスナップショットの使用容量や無料枠などによって異なる。
+
+### 14.9 Destroy後の確認
+
+Destroyスクリプトが正常終了した後、Runtime Terraform StateとAWS上のリソースを照合する。\***\*Stateが空であることだけでは、すべての課金対象リソースが削除された証明にはならない。\*\***
+
+#### 1. Runtime Terraform State
+
+```bash
+terraform -chdir=terraform/runtime state list
+```
+
+期待値：Runtime管理対象のリソースが表示されないこと。Persistent側のHosted Zoneなどは削除対象ではない。
+
+#### 2. ECS Service
+
+```bash
+aws ecs describe-services \
+  --region ap-northeast-1 \
+  --cluster equipment-inspection-cluster \
+  --services equipment-inspection-service \
+  --query '{Services:services[*].{Status:status,Running:runningCount},Failures:failures}' \
+  --output json
+```
+
+期待値：対象Serviceが存在しないこと。`services` が空で `failures` に `MISSING` などが含まれる場合は削除済みの可能性がある。Cluster自体が存在しない場合のエラーも想定されるため、必要に応じてAWS Consoleでも確認する。
+
+#### 3. RDS DB Instance
+
+```bash
+aws rds describe-db-instances \
+  --region ap-northeast-1 \
+  --db-instance-identifier equipment-inspection-db
+```
+
+期待値：`DBInstanceNotFound`。これは削除後の想定結果であり、停止状態の `stopped` とは異なる。
+
+#### 4. ALB Target Group
+
+```bash
+aws elbv2 describe-target-groups \
+  --region ap-northeast-1 \
+  --names equipment-inspection-tg
+```
+
+期待値：`TargetGroupNotFound`。必要に応じてALB本体、NAT Gateway、ECR、CloudWatchなどの残存リソースもAWS Consoleで確認する。
+
+#### 5. Persistent Resourcesと課金
+
+```bash
+aws route53 list-hosted-zones \
+  --query 'HostedZones[*].[Name,Id]' \
+  --output table
+aws rds describe-db-snapshots \
+  --region ap-northeast-1 \
+  --snapshot-type manual \
+  --query 'DBSnapshots[*].[DBSnapshotIdentifier,Status]' \
+  --output table
+```
+
+- Hosted Zoneは保持対象。Manual Snapshotは作成した場合のみ保持される。Snapshotが存在しない場合もある。
+- DNS解決失敗やHTTPS接続不可だけで、AWSリソースの削除完了を判定しない。
+- AWS Billing / Cost Explorerで継続課金の有無を後から確認する。料金データの反映には遅延がある。
 
 ## 15. Fail Safe / Fail Closed
 
@@ -563,21 +688,82 @@ Terraform State、RDS Snapshot、AWSリソースの状態を確認してから�
 
 ## 16. 復元後確認
 
-### スクリプトによる自動確認
+### 16.1 スクリプトによる自動確認
+
+Restoreスクリプトは以下を確認する。
 
 - Terraform Apply成功
 - RDS PasswordとSSM Parameterの設定処理成功
 - ECR Image Push成功
-- ECS Service安定稼働
-- ALB Target Healthが正常
+- ECS Service安定稼働（`aws ecs wait services-stable`）
+- ALB Target Groupに1件以上のターゲットが登録され、すべて `healthy` になること
 
-### 手動確認
+ただし、HTTPS疎通やアプリケーションの業務機能は自動確認の対象外である。
 
-- `https://kdevnest.com`へのHTTPS疎通
-- Spring Boot Applicationの主要画面
-- RDSへの接続とデータ保持状況
-- SNS Email Subscriptionの再設定・購読確認
-- AWS Billing / Cost Explorerでの課金状況
+### 16.2 ECS Service起動確認
+
+```bash
+aws ecs describe-services \
+  --region ap-northeast-1 \
+  --cluster equipment-inspection-cluster \
+  --services equipment-inspection-service \
+  --query '{Services:services[*].{Status:status,Desired:desiredCount,Running:runningCount,Pending:pendingCount},Failures:failures}' \
+  --output json
+```
+
+期待値：`ACTIVE`、Desired `1`、Running `1`、Pending `0`、Failuresが空。`services` が空の場合は正常と判断しない。
+
+### 16.3 RDS起動確認
+
+```bash
+aws rds describe-db-instances \
+  --region ap-northeast-1 \
+  --db-instance-identifier equipment-inspection-db \
+  --query 'DBInstances[0].[DBInstanceIdentifier,DBInstanceStatus]' \
+  --output table
+```
+
+期待値：`equipment-inspection-db` / `available`。
+
+### 16.4 ALB Target Health確認
+
+```bash
+TG_ARN="$(
+  aws elbv2 describe-target-groups \
+    --region ap-northeast-1 \
+    --names equipment-inspection-tg \
+    --query 'TargetGroups[0].TargetGroupArn' \
+    --output text
+)" || exit 1
+if [[ -z "$TG_ARN" || "$TG_ARN" == "None" ]]; then
+  echo "ERROR: Target Group not found." >&2
+else
+  aws elbv2 describe-target-health \
+    --region ap-northeast-1 \
+    --target-group-arn "$TG_ARN" \
+    --query 'TargetHealthDescriptions[*].{Target:Target.Id,State:TargetHealth.State,Reason:TargetHealth.Reason}' \
+    --output json
+fi
+```
+
+期待値：登録ターゲットが1件以上あり、すべて `healthy`。ターゲットが空の場合は成功とみなさない。
+
+### 16.5 HTTPS疎通確認
+
+```bash
+curl -sS -o /dev/null -w '%{http_code}\n' \
+  https://kdevnest.com/login
+```
+
+期待値：HTTP `200`。リダイレクトが返る場合は遷移先を確認する。DNS解決失敗の場合はRoute 53、レコード、ドメイン設定を確認する。
+
+### 16.6 アプリケーション・運用確認
+
+- ブラウザでログイン画面、ダッシュボード、設備一覧、点検履歴を確認する。
+- RDS接続と、Snapshot復元時のデータ保持状況を確認する。`--new-db` では旧DBのデータは引き継がれない。
+- SNS Email Subscriptionの再設定と購読確認を行う（12章参照）。
+- CloudWatch Logsに重大なエラーが継続していないことを確認する。詳細な調査コマンドは `docs/operations/aws-emergency-stop-runbook.md` を参照する。
+- AWS Billing / Cost Explorerで課金状況を確認する。
 
 自動確認の成功だけで、アプリケーション全機能の正常性を保証するものではない。
 
@@ -602,11 +788,11 @@ Issue #99の対象外とする。
 
 ### 18.1 Destroy検証
 
-**結果：成功**
+\***\*結果：成功\*\***
 
 RDS Manual Snapshotを作成する通常のDestroyと、Snapshot作成を省略する`--skip-snapshot`の両方を実環境で検証した。
 
-**Manual Snapshotあり**
+\***\*Manual Snapshotあり\*\***
 
 - Terraform Destroy Planで47リソースの削除を確認
 - `DESTROY`の完全一致入力による承認に成功
@@ -620,7 +806,7 @@ RDS Manual Snapshotを作成する通常のDestroyと、Snapshot作成を省略�
 - `equipment-inspection-db-manual-20261022-121956`
 - `equipment-inspection-db-manual-20261022-130524`
 
-**Snapshot作成なし（`--skip-snapshot`）**
+\***\*Snapshot作成なし（`--skip-snapshot`）\*\***
 
 - `--skip-snapshot`を指定してDestroyを実行
 - 新しいRDS Manual Snapshotを作成せずに削除処理を実施
@@ -631,7 +817,7 @@ RDS Manual Snapshotを作成する通常のDestroyと、Snapshot作成を省略�
 
 ### 18.2 Restore検証（Snapshotから復元）
 
-**結果：成功**
+\***\*結果：成功\*\***
 
 - 指定したManual SnapshotからRDSを復元
 - RDS Master Password設定とSSM Parameter同期処理を実施
@@ -647,7 +833,7 @@ RDS Manual Snapshotを作成する通常のDestroyと、Snapshot作成を省略�
 
 ### 18.3 Restore検証（新規RDS作成）
 
-**結果：成功**
+\***\*結果：成功\*\***
 
 `--new-db`モードを使用し、既存のRDS Snapshotを利用せずにAWS環境を新規構築した。
 
@@ -664,28 +850,34 @@ RDS Manual Snapshotを作成する通常のDestroyと、Snapshot作成を省略�
 
 2026年10月22日〜23日の実環境検証における実測値。
 
-| 操作 | 所要時間 | 結果 |
-|---|---:|---|
-| Snapshotからの環境復元 | 20分26.790秒 | 成功 |
-| Snapshot作成なしの環境削除 | 5分35.022秒 | 成功 |
-| 新規RDS作成による環境構築 | 18分44.255秒 | 成功 |
-| 新規RDS構築後の最終Destroy | 6分13.104秒 | 成功 |
+\| 操作 | 所要時間 | 結果 |
+
+\|---|---:|---|
+
+\| Snapshotからの環境復元 | 20分26.790秒 | 成功 |
+
+\| Snapshot作成なしの環境削除 | 5分35.022秒 | 成功 |
+
+\| 新規RDS作成による環境構築 | 18分44.255秒 | 成功 |
+
+\| 新規RDS構築後の最終Destroy | 6分13.104秒 | 成功 |
 
 - 実行時間にはAWSリソースの作成・削除待機時間や、ユーザーによる承認入力時間も含まれる。
 - AWSリソースの状態によって所要時間は変動する。
 
 ### 18.5 最終Destroy・リソース保持確認
 
-**結果：Runtime Resourcesの削除成功**
+\***\*結果：Runtime Resourcesの削除成功\*\***
 
 新規RDS作成によるRestoreの動作確認後、
+
 `--skip-snapshot`を指定して最終Destroyを実施した。
 
 - Terraformによる47リソースの削除に成功
 - Destroyスクリプトが正常終了（Exit code：`0`）
 - 実行時間：6分13.104秒
 
-**Persistent Resourcesの保持確認：成功**
+\***\*Persistent Resourcesの保持確認：成功\*\***
 
 AWS CLIによる確認の結果、最終Destroy後も以下のリソースが保持されていることを確認した。
 
@@ -698,12 +890,13 @@ AWS CLIによる確認の結果、最終Destroy後も以下のリソースが保
 
 これにより、Runtime Resourcesの削除後も、保持対象のHosted ZoneとManual Snapshotが維持されていることを確認した。
 
-**Terraform Stateの確認：成功**
+\***\*Terraform Stateの確認：成功\*\***
 
 `terraform -chdir=terraform/runtime state list`を実行し、
+
 Runtime Terraform Stateに管理対象リソースが残っていないことを確認した。
 
-**不要なRDS Manual Snapshotの削除：成功**
+\***\*不要なRDS Manual Snapshotの削除：成功\*\***
 
 実環境検証で作成した以下のManual Snapshot 2件について、保存が必要なデータが存在しないことを確認したうえで、AWS CLIから削除した。
 
