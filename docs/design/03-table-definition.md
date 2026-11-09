@@ -175,6 +175,16 @@
 | `fk_inspection_equipment` | FOREIGN KEY | `equipment_id` | `equipment.id` を参照する |
 | `fk_inspection_user`      | FOREIGN KEY | `user_id`      | `users.id` を参照する     |
 
+### 6.4 値の設定ルール
+
+- `inspection.user_id` は、点検結果登録時に認証済みのログインユーザーIDをシステムが自動設定する。
+- `inspection.user_id` は、画面からの手動入力・選択を許可しない。
+- `inspection.inspection_at` は、点検結果登録時にサーバー側で取得した日時をシステムが自動設定する。
+- `inspection.inspection_at` は、画面からの手動入力・変更を許可しない。
+- 点検結果の訂正・取消を行った場合も、元の `inspection.user_id` および `inspection.inspection_at` は変更しない。
+
+対応要件：FR-042、FR-043、BR-027、BR-028
+
 ---
 
 ## 7. inspection_result
