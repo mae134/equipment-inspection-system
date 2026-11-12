@@ -4,15 +4,16 @@
 
 本書は、設備点検管理システムで使用するデータベーステーブルの定義を記載する。
 
-対象テーブルは以下の5テーブルとする。
+対象テーブルは以下の6テーブルとする。
 
-| No. | 論理名       | 物理名                      | 概要                                    |
-| --: | ------------ | --------------------------- | --------------------------------------- |
-|   1 | ユーザー     | `users`                     | ログインユーザーおよび権限を管理する    |
-|   2 | 設備         | `equipment`                 | 点検対象となる設備を管理する            |
-|   3 | 設備点検項目 | `equipment_inspection_item` | 設備ごとの点検項目マスタを管理する      |
-|   4 | 点検         | `inspection`                | 1回の点検に関するヘッダー情報を管理する |
-|   5 | 点検結果     | `inspection_result`         | 各点検項目の実施結果を管理する          |
+| No. | 論理名           | 物理名                      | 概要                                    |
+| --: | ---------------- | --------------------------- | --------------------------------------- |
+|   1 | ユーザー         | `users`                     | ログインユーザーおよび権限を管理する    |
+|   2 | 設備             | `equipment`                 | 点検対象となる設備を管理する            |
+|   3 | 設備点検項目     | `equipment_inspection_item` | 設備ごとの点検項目マスタを管理する      |
+|   4 | 点検             | `inspection`                | 1回の点検に関するヘッダー情報を管理する |
+|   5 | 点検結果         | `inspection_result`         | 各点検項目の実施結果を管理する          |
+|   6 | 点検結果変更履歴 | `inspection_result_history` | 点検結果の訂正・取消履歴を管理する      |
 
 ---
 
@@ -174,6 +175,16 @@
 | `fk_inspection_equipment` | FOREIGN KEY | `equipment_id` | `equipment.id` を参照する |
 | `fk_inspection_user`      | FOREIGN KEY | `user_id`      | `users.id` を参照する     |
 
+### 6.4 値の設定ルール
+
+- `inspection.user_id` は、点検結果登録時に認証済みのログインユーザーIDをシステムが自動設定する。
+- `inspection.user_id` は、画面からの手動入力・選択を許可しない。
+- `inspection.inspection_at` は、点検結果登録時にサーバー側で取得した日時をシステムが自動設定する。
+- `inspection.inspection_at` は、画面からの手動入力・変更を許可しない。
+- 点検結果の訂正・取消を行った場合も、元の `inspection.user_id` および `inspection.inspection_at` は変更しない。
+
+対応要件：FR-042、FR-043、BR-027、BR-028
+
 ---
 
 ## 7. inspection_result
@@ -188,17 +199,34 @@
 
 ### 7.2 カラム定義
 
-| No. | 論理名     | カラム名             | データ型        | PK  | FK  | NULL | UNIQUE | デフォルト | 説明                                |
-| --: | ---------- | -------------------- | --------------- | :-: | :-: | :--: | :----: | ---------- | ----------------------------------- |
-|   1 | 点検結果ID | `id`                 | `BIGINT`        |  ○  |     | 不可 |   ○    | 自動採番   | 点検結果を識別するID                |
-|   2 | 点検ID     | `inspection_id`      | `BIGINT`        |     |  ○  | 不可 |        |            | 対象となる点検のID                  |
-|   3 | 点検項目ID | `inspection_item_id` | `BIGINT`        |     |  ○  | 不可 |        |            | 対象となる設備点検項目のID          |
-|   4 | 数値結果   | `numeric_value`      | `DECIMAL(12,4)` |     |     |  可  |        |            | `NUMERIC`型の点検項目で測定した値   |
-|   5 | 真偽結果   | `boolean_value`      | `BOOLEAN`       |     |     |  可  |        |            | `BOOLEAN`型の点検項目で入力した結果 |
-|   6 | 判定結果   | `result`             | `VARCHAR(20)`   |     |     | 不可 |        |            | `OK`、`NG`、`NOT_APPLICABLE`        |
-|   7 | 備考       | `comment`            | `VARCHAR(500)`  |     |     |  可  |        |            | 点検項目ごとの補足情報              |
-|   8 | 作成日時   | `created_at`         | `TIMESTAMP`     |     |     | 不可 |        |            | レコード作成日時                    |
-|   9 | 更新日時   | `updated_at`         | `TIMESTAMP`     |     |     | 不可 |        |            | レコード更新日時                    |
+| No. | 論理名                   | カラム名                        | データ型        | PK  | FK  | NULL | UNIQUE | デフォルト | 説明                                               |
+| --: | ------------------------ | ------------------------------- | --------------- | :-: | :-: | :--: | :----: | ---------- | -------------------------------------------------- |
+|   1 | 点検結果ID               | `id`                            | `BIGINT`        |  ○  |     | 不可 |   ○    | 自動採番   | 点検結果を識別するID                               |
+|   2 | 点検ID                   | `inspection_id`                 | `BIGINT`        |     |  ○  | 不可 |        |            | 対象となる点検のID                                 |
+|   3 | 点検項目ID               | `inspection_item_id`            | `BIGINT`        |     |  ○  | 不可 |        |            | 対象となる設備点検項目のID                         |
+|   4 | 点検項目名（記録時点）   | `item_name_snapshot`            | `VARCHAR(100)`  |     |     | 不可 |        |            | 点検結果登録時点の点検項目名                       |
+|   5 | 判定方式（記録時点）     | `item_type_snapshot`            | `VARCHAR(20)`   |     |     | 不可 |        |            | 点検結果登録時点の判定方式（`NUMERIC`、`BOOLEAN`） |
+|   6 | 測定単位（記録時点）     | `unit_snapshot`                 | `VARCHAR(20)`   |     |     |  可  |        |            | 点検結果登録時点の測定単位                         |
+|   7 | 正常下限値（記録時点）   | `min_value_snapshot`            | `DECIMAL(12,4)` |     |     |  可  |        |            | 点検結果登録時点の正常範囲の下限値                 |
+|   8 | 正常上限値（記録時点）   | `max_value_snapshot`            | `DECIMAL(12,4)` |     |     |  可  |        |            | 点検結果登録時点の正常範囲の上限値                 |
+|   9 | 真偽判定基準（記録時点） | `normal_boolean_value_snapshot` | `BOOLEAN`       |     |     |  可  |        |            | 点検結果登録時点の真偽判定基準                     |
+|  10 | 数値結果                 | `numeric_value`                 | `DECIMAL(12,4)` |     |     |  可  |        |            | `NUMERIC`型の点検項目で測定した値                  |
+|  11 | 真偽結果                 | `boolean_value`                 | `BOOLEAN`       |     |     |  可  |        |            | `BOOLEAN`型の点検項目で入力した結果                |
+|  12 | 判定結果                 | `result`                        | `VARCHAR(20)`   |     |     | 不可 |        |            | `OK`、`NG`、`NOT_APPLICABLE`                       |
+|  13 | 備考                     | `comment`                       | `VARCHAR(500)`  |     |     |  可  |        |            | 点検項目ごとの補足情報                             |
+|  14 | 作成日時                 | `created_at`                    | `TIMESTAMP`     |     |     | 不可 |        |            | レコード作成日時                                   |
+|  15 | 更新日時                 | `updated_at`                    | `TIMESTAMP`     |     |     | 不可 |        |            | レコード更新日時                                   |
+|  16 | 取消状態                 | `cancelled`                     | `BOOLEAN`       |     |     | 不可 |        | `FALSE`    | 点検結果が取り消されているかを表す                 |
+
+**点検項目情報のスナップショット管理**
+
+- 点検結果の新規登録時に、点検項目マスタの項目名、判定方式、測定単位および判定基準をスナップショットとして保存する。
+- スナップショットは点検結果登録時点の情報を保持し、点検項目マスタの編集・無効化によって更新しない。
+- 過去の点検履歴では、スナップショットを使用して登録時点の項目情報および判定基準を表示する。
+- `inspection_item_id` は、点検項目マスタとの関連付けのために引き続き保持する。
+- 点検結果の訂正・取消時におけるスナップショットの取り扱いは、訂正・取消履歴の設計で定義する。
+
+対応要件：FR-030、BR-013、BR-016、BR-029
 
 ### 7.3 制約
 
@@ -218,31 +246,93 @@
 - `NOT_APPLICABLE` の場合は、`numeric_value` および `boolean_value` を `NULL` とする。
 - `NOT_APPLICABLE` は、設備停止中などの理由により、その回の点検では対象項目を判定できない、または判定対象としない場合に使用する。理由がある場合は `comment` に補足を記録する。
 - `inspection_result.inspection_item_id` が参照する点検項目は、対象となる `inspection.equipment_id` と同一設備に属する点検項目でなければならない。
+- `cancelled` は、点検結果が有効か取り消されているかを表す。
+- `cancelled = FALSE` の場合、点検結果は有効とする。
+- `cancelled = TRUE` の場合、点検結果は取り消されたものとして扱う。
+- 取消時は `numeric_value`、`boolean_value`、`result`、`comment` を削除・初期化せず保持する。
+- 取消時の操作ユーザー、操作日時、取消理由は `inspection_result_history` に記録する。
+- 取り消された点検結果は、通常の有効な点検結果の集計対象から除外する。
+- 取消済みの点検結果に対する再訂正・再取消は許可しない。
 
 ---
 
-## 8. リレーション一覧
+## 8. inspection_result_history
 
-| 親テーブル                  | 子テーブル                  | 多重度 | 外部キー                                 |
-| --------------------------- | --------------------------- | ------ | ---------------------------------------- |
-| `users`                     | `inspection`                | 1:N    | `inspection.user_id`                     |
-| `equipment`                 | `inspection`                | 1:N    | `inspection.equipment_id`                |
-| `equipment`                 | `equipment_inspection_item` | 1:N    | `equipment_inspection_item.equipment_id` |
-| `inspection`                | `inspection_result`         | 1:N    | `inspection_result.inspection_id`        |
-| `equipment_inspection_item` | `inspection_result`         | 1:N    | `inspection_result.inspection_item_id`   |
+### 8.1 テーブル概要
+
+| 項目   | 内容                                                                                       |
+| ------ | ------------------------------------------------------------------------------------------ |
+| 論理名 | 点検結果変更履歴                                                                           |
+| 物理名 | `inspection_result_history`                                                                |
+| 説明   | 点検結果の訂正・取消操作について、変更前後の値、操作ユーザー、操作日時および理由を管理する |
+
+### 8.2 カラム定義
+
+| No. | 論理名         | カラム名               | データ型        | PK  | FK  | NULL | UNIQUE | デフォルト | 説明                           |
+| --: | -------------- | ---------------------- | --------------- | :-: | :-: | :--: | :----: | ---------- | ------------------------------ |
+|   1 | 変更履歴ID     | `id`                   | `BIGINT`        |  ○  |     | 不可 |   ○    | 自動採番   | 変更履歴を識別するID           |
+|   2 | 点検結果ID     | `inspection_result_id` | `BIGINT`        |     |  ○  | 不可 |        |            | 変更対象の点検結果ID           |
+|   3 | 操作種別       | `action`               | `VARCHAR(20)`   |     |     | 不可 |        |            | `CORRECT` または `CANCEL`      |
+|   4 | 操作ユーザーID | `changed_by`           | `BIGINT`        |     |  ○  | 不可 |        |            | 訂正・取消を実行したユーザーID |
+|   5 | 操作日時       | `changed_at`           | `TIMESTAMP`     |     |     | 不可 |        |            | 訂正・取消を実行した日時       |
+|   6 | 変更理由       | `reason`               | `VARCHAR(500)`  |     |     | 不可 |        |            | 訂正・取消を行った理由         |
+|   7 | 変更前数値結果 | `old_numeric_value`    | `DECIMAL(12,4)` |     |     |  可  |        |            | 変更前の測定値                 |
+|   8 | 変更後数値結果 | `new_numeric_value`    | `DECIMAL(12,4)` |     |     |  可  |        |            | 変更後の測定値                 |
+|   9 | 変更前真偽結果 | `old_boolean_value`    | `BOOLEAN`       |     |     |  可  |        |            | 変更前の真偽値                 |
+|  10 | 変更後真偽結果 | `new_boolean_value`    | `BOOLEAN`       |     |     |  可  |        |            | 変更後の真偽値                 |
+|  11 | 変更前判定結果 | `old_result`           | `VARCHAR(20)`   |     |     | 不可 |        |            | 変更前の判定結果               |
+|  12 | 変更後判定結果 | `new_result`           | `VARCHAR(20)`   |     |     |  可  |        |            | 訂正後の判定結果。取消時はNULL |
+|  13 | 変更前備考     | `old_comment`          | `VARCHAR(500)`  |     |     |  可  |        |            | 変更前の備考                   |
+|  14 | 変更後備考     | `new_comment`          | `VARCHAR(500)`  |     |     |  可  |        |            | 変更後の備考                   |
+
+### 8.3 制約
+
+| 制約名（案）                   | 種別        | 対象                   | 内容                              |
+| ------------------------------ | ----------- | ---------------------- | --------------------------------- |
+| `pk_inspection_result_history` | PRIMARY KEY | `id`                   | 変更履歴IDを主キーとする          |
+| `fk_history_result`            | FOREIGN KEY | `inspection_result_id` | `inspection_result.id` を参照する |
+| `fk_history_user`              | FOREIGN KEY | `changed_by`           | `users.id` を参照する             |
+
+### 8.4 値の利用ルール
+
+- 点検結果の訂正・取消時に、変更前後の値、操作ユーザー、操作日時および変更理由を履歴として保存する。
+- 変更履歴は追記のみとし、原則として更新・物理削除しない。
+- 訂正時は `inspection_result` の現在値を更新し、訂正前後の値を `inspection_result_history` に記録する。
+- 取消時は `inspection_result` を物理削除せず、取消状態を保持する。
+- 取消時の `new_result` は `NULL` とし、変更後の測定値・真偽値・備考は必要に応じて保持する。
+- 点検結果の登録者は `inspection.user_id` に保持し、訂正・取消によって変更しない。
+- `INSPECTOR` は自身が登録した点検結果のみ訂正・取消でき、`ADMIN` はすべての点検結果を訂正・取消できる。
+- 訂正・取消操作と変更履歴の登録は、同一トランザクションで実行する。
+- 点検項目のスナップショットは、マスタの変更や点検結果の訂正・取消によって変更しない。
+
+対応要件：FR-031～035、FR-060、BR-017～021、BR-043～047
 
 ---
 
-## 9. 列挙値
+## 9. リレーション一覧
 
-### 9.1 role
+| 親テーブル                  | 子テーブル                  | 多重度 | 外部キー                                         |
+| --------------------------- | --------------------------- | ------ | ------------------------------------------------ |
+| `users`                     | `inspection`                | 1:N    | `inspection.user_id`                             |
+| `equipment`                 | `inspection`                | 1:N    | `inspection.equipment_id`                        |
+| `equipment`                 | `equipment_inspection_item` | 1:N    | `equipment_inspection_item.equipment_id`         |
+| `inspection`                | `inspection_result`         | 1:N    | `inspection_result.inspection_id`                |
+| `equipment_inspection_item` | `inspection_result`         | 1:N    | `inspection_result.inspection_item_id`           |
+| `inspection_result`         | `inspection_result_history` | 1:N    | `inspection_result_history.inspection_result_id` |
+| `users`                     | `inspection_result_history` | 1:N    | `inspection_result_history.changed_by`           |
 
-| 値          | 説明                                           |
-| ----------- | ---------------------------------------------- |
-| `ADMIN`     | 設備、点検項目、ユーザーなどを管理できる管理者 |
-| `INSPECTOR` | 点検の実施および履歴の閲覧を行う点検者         |
+---
 
-### 9.2 inspection_result.result
+## 10. 列挙値
+
+### 10.1 role
+
+| 値          | 説明                                                                     |
+| ----------- | ------------------------------------------------------------------------ |
+| `ADMIN`     | 設備・点検項目の管理、履歴閲覧、および全点検結果の訂正・取消を行う管理者 |
+| `INSPECTOR` | 点検実施、履歴閲覧、および自身が実施した点検結果の訂正・取消を行う点検者 |
+
+### 10.2 inspection_result.result
 
 | 値               | 説明                 |
 | ---------------- | -------------------- |
@@ -250,16 +340,23 @@
 | `NG`             | 異常あり             |
 | `NOT_APPLICABLE` | 今回の点検では対象外 |
 
-### 9.3 equipment_inspection_item.type
+### 10.3 equipment_inspection_item.type
 
 | 値        | 説明                                                 |
 | --------- | ---------------------------------------------------- |
 | `NUMERIC` | 数値を入力し、必要に応じて閾値で正常・異常を判定する |
 | `BOOLEAN` | 真偽値を入力して正常・異常を判定する                 |
 
+### 10.4 inspection_result_history.action
+
+| 値        | 説明                             |
+| --------- | -------------------------------- |
+| `CORRECT` | 登録済みの点検結果を訂正する操作 |
+| `CANCEL`  | 登録済みの点検結果を取り消す操作 |
+
 ---
 
-## 10. 補足事項
+## 11. 補足事項
 
 - `users` はSQLの予約語との衝突を避けるため、単数形の `user` ではなく複数形を採用する。
 - `inspection.user_id` には、画面から入力された氏名ではなく、ログイン中のユーザーIDを設定する。
