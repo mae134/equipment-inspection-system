@@ -53,7 +53,8 @@ Scaling等は初期構成では採用せず、必要最低限の構成とする�
                             v
                     +---------------+
                     |      ALB      |
-                    | Public Subnet |
+                    | Public Subnets|
+                    |  1a and 1c    |
                     |   ACM / TLS   |
                     +-------+-------+
                             |
@@ -65,7 +66,8 @@ Scaling等は初期構成では採用せず、必要最低限の構成とする�
                   +-------------------+
                   |   ECS / Fargate   |
                   |     Task x 1      |
-                  |   Public Subnet   |
+                  | Public Subnet 1a  |
+                  |       or 1c       |
                   |    Public IP      |
                   +---------+---------+
                             |
@@ -76,8 +78,10 @@ Scaling等は初期構成では採用せず、必要最低限の構成とする�
                             v
                   +-------------------+
                   |  RDS PostgreSQL   |
-                  |  Private Subnet   |
-                  |    Single-AZ      |
+                  | DB Subnet Group   |
+                  | Private 1a and 1c |
+                  | Single-AZ         |
+                  | AZ not fixed      |
                   +-------------------+
 
 ECR ---------------------> ECS / Fargate
@@ -85,7 +89,7 @@ Parameter Store ---------> ECS / Fargate
 CloudWatch <------------- ECS / ALB / RDS
 ```
 
-構成図の詳細版は別途Draw.ioおよびPNG形式で作成する。
+構成図の詳細版はDraw.ioおよびSVG形式で管理する。
 
 ---
 
@@ -97,21 +101,34 @@ CloudWatch <------------- ECS / ALB / RDS
 
 ### 4.2 Public Subnet
 
+Public Subnetは以下の2つとする。
+
+| Subnet | Availability Zone | CIDR |
+| ------ | ----------------- | ---- |
+| Public Subnet A | `ap-northeast-1a` | `10.0.1.0/24` |
+| Public Subnet C | `ap-northeast-1c` | `10.0.2.0/24` |
+
 以下をPublic Subnetへ配置する。
 
 - ALB
 - ECS / Fargate Task
 
-ALBはInternetからHTTPSリクエストを受け付ける。
+ALBは両方のPublic Subnetを使用し、InternetからHTTPSリクエストを受け付ける。
 
-Fargate TaskはPublic IPを付与するが、Security
+ECS Serviceは両方のPublic SubnetをTaskの配置候補とする。Desired Countは1とし、Taskはどちらか一方のSubnetに配置される。Fargate TaskにはPublic IPを付与するが、Security
 GroupによってInbound通信元をALBのSecurity
 Groupのみに制限し、Internetからアプリケーションへ直接アクセスできないようにする。
 
 ### 4.3 Private Subnet
 
-RDS PostgreSQLはPrivate
-Subnetへ配置し、Internetから直接アクセスできない構成とする。
+Private Subnetは以下の2つとする。
+
+| Subnet | Availability Zone | CIDR |
+| ------ | ----------------- | ---- |
+| Private Subnet A | `ap-northeast-1a` | `10.0.11.0/24` |
+| Private Subnet C | `ap-northeast-1c` | `10.0.12.0/24` |
+
+RDS DB Subnet Groupは両方のPrivate Subnetを使用する。RDS PostgreSQLはSingle-AZの1インスタンスとし、Availability Zoneを明示的に固定しない。RDSはInternetから直接アクセスできない構成とする。
 
 ### 4.4 Internet Gateway
 
@@ -149,7 +166,7 @@ Bootアプリケーションを実行する。
 
 ### 5.3 Task構成
 
-初期構成ではFargate Taskを1個とする。
+初期構成ではFargate Taskを1個とし、Task DefinitionにはCPU `512`（0.5 vCPU）、Memory `1024` MiBを設定する。
 
 ```text
 Desired Count = 1
@@ -158,6 +175,8 @@ Desired Count = 1
 ECS Serviceによって常時1
 Taskを維持し、Taskが異常終了した場合には新しいTaskを起動してDesired
 Countを維持する。
+
+ECS Serviceの配置候補にはPublic Subnet AとPublic Subnet Cを指定し、TaskにPublic IPを付与する。Taskを特定のSubnetまたはAvailability Zoneへ固定しない。
 
 ### 5.4 Auto Scaling
 
@@ -195,15 +214,19 @@ Imageを生成し、ECRへ登録した上でECSへ反映する。
 
 本番データベースとしてAmazon RDS for PostgreSQLを利用する。
 
+DBインスタンスクラスは`db.t4g.micro`、初期ストレージは20 GiB、最大自動拡張容量は1,000 GiB、ストレージタイプは`gp2`とする。
+
 ### 7.2 Single-AZ
 
 初期構成ではSingle-AZとする。
 
 Multi-AZによる高可用性よりも、ポートフォリオ用途におけるコスト削減を優先する。
 
+RDS DB Subnet GroupにはPrivate Subnet AとPrivate Subnet Cを含める。RDSインスタンスのAvailability Zoneは明示的に指定せず、特定のAZへ固定しない。
+
 ### 7.3 ネットワーク
 
-RDSはPrivate Subnetへ配置する。
+RDSは上記DB Subnet Groupを使用してPrivate Subnetへ配置する。
 
 RDSのSecurity Groupでは、ECS TaskのSecurity
 GroupからのPostgreSQL通信のみを許可する。
@@ -214,7 +237,7 @@ RDSの自動バックアップを有効化する。
 
 障害や誤操作によるデータ損失時に復旧できることを目的とする。
 
-具体的なバックアップ保持期間は構築時に決定する。
+自動バックアップの保持期間は1日とする。
 
 ---
 
@@ -233,16 +256,7 @@ Bootアプリケーションへ転送する。
 ALB Target GroupのHealth
 Checkを利用してアプリケーションの正常性を確認する。
 
-Spring Boot Actuator等によるHealth
-Check用エンドポイントの利用を検討する。
-
-具体的な以下の設定値は構築時に決定する。
-
-- Health Check Path
-- Interval
-- Timeout
-- Healthy Threshold
-- Unhealthy Threshold
+Health Check Pathは`/login`とし、HTTP `200`を正常と判定する。間隔は30秒、Timeoutは5秒、Healthy ThresholdとUnhealthy Thresholdはそれぞれ2回とする。
 
 ---
 
@@ -772,22 +786,12 @@ AWSアカウントを先に作成して試行錯誤するのではなく、ロ�
 
 以下は基本設計時点では固定せず、AWS構築時に実際の設定項目・料金・動作を確認した上で決定する。
 
-- VPC / Subnetの具体的なCIDR
-- Availability Zoneの具体的な配置
-- ECS / Fargateの最終vCPU・Memory
-- RDSの最終インスタンスクラス
-- RDSストレージ容量
-- RDSバックアップ保持期間
-- ALB Health Check Path
-- ALB Health Check間隔・閾値
 - CloudWatch Alarmの監視対象・閾値
 - Cost Anomaly Detectionの具体的な通知・判定条件
 - コスト緊急停止処理の具体的な実装
 - 緊急停止後の復旧手順
 - Spend limitsの利用可否
 - AWS構築時点の料金・為替レートによるPricing Calculatorの再見積もり
-- 独自ドメイン名および取得方法
-- CI/CDで利用するIAM権限およびGitHub Actionsとの認証方式
 
 ---
 
