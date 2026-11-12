@@ -2,9 +2,9 @@
 
 ## 1. 概要
 
-本ドキュメントは、設備点検管理システムで提供しているREST APIの仕様を記載する。
+本ドキュメントは、設備点検管理システムのREST APIの意図する設計を記載する。
 
-現在実装されているController、Request / Response DTO、Service、およびSpring Security設定を基準とする。
+本書の仕様は、要件定義書、テーブル定義書および画面設計書で確定した要件を基準とする。現在の実装との差異は実装上の課題であり、本書に記載した未実装の振る舞いが実装済みであることを意味しない。
 
 ---
 
@@ -34,7 +34,7 @@ Content-Type: application/json
 | -------------- | ------------------------------ |
 | 認証方式       | Spring Security セッション認証 |
 | セッション     | `JSESSIONID`                   |
-| 必要Role       | `ADMIN`                        |
+| 必要Role       | エンドポイントごとに定義       |
 | 未認証アクセス | ログイン画面へリダイレクト     |
 | 権限不足       | `403 Forbidden`                |
 
@@ -76,6 +76,8 @@ Bean Validationに違反した場合は `400 Bad Request` を返す。
 | `404 Not Found`   | 対象リソースが存在しない               |
 | `409 Conflict`    | 重複するリソースを登録しようとした場合 |
 
+認証済みであっても、対象データの登録者に基づく操作権限を満たさない場合は `403 Forbidden` とする。各エンドポイントの権限は第8章を参照する。
+
 `ResourceNotFoundException` のレスポンス形式:
 
 ```json
@@ -104,7 +106,7 @@ Base Path:
 /api/equipment
 ```
 
-すべてのAPIで認証および `ADMIN` Roleが必要。
+参照APIは `ADMIN`、`INSPECTOR` の双方、登録・更新・廃止APIは `ADMIN` の認証が必要。
 
 ## 3.1 設備一覧取得
 
@@ -273,13 +275,13 @@ Validation違反:
 
 ---
 
-## 3.5 設備削除
+## 3.5 設備廃止
 
 ```http
 DELETE /api/equipment/{id}
 ```
 
-指定された設備を削除する。
+指定された設備を物理削除せず、廃止状態に変更する。
 
 ### Response
 
@@ -305,7 +307,7 @@ Base Path:
 /api/inspection-items
 ```
 
-すべてのAPIで認証および `ADMIN` Roleが必要。
+参照APIは `ADMIN`、`INSPECTOR` の双方、登録・更新・無効化APIは `ADMIN` の認証が必要。
 
 ## 4.1 点検項目一覧取得
 
@@ -470,11 +472,13 @@ Request Bodyおよび業務Validationは点検項目登録と同じ。
 
 ---
 
-## 4.6 点検項目削除
+## 4.6 点検項目無効化
 
 ```http
 DELETE /api/inspection-items/{id}
 ```
+
+指定された点検項目を物理削除せず、無効状態に変更する。過去の点検結果と記録時点のスナップショットは保持する。
 
 ### Response
 
@@ -500,13 +504,17 @@ Base Path:
 /api/inspections
 ```
 
-すべてのAPIで認証および `ADMIN` Roleが必要。
+一覧・詳細取得は履歴の閲覧・検索として `ADMIN`、`INSPECTOR` の双方、点検登録は `INSPECTOR` の認証が必要。
 
 ## 5.1 点検一覧取得
 
 ```http
 GET /api/inspections
 ```
+
+点検履歴を取得する。`ADMIN`、`INSPECTOR` の双方が利用できる。
+
+設備、点検日の開始・終了、点検者および判定結果による絞り込みを行えるものとする。検索条件の具体的なクエリパラメータ名は、正本資料では確定していないため未解決事項とする。取消済み明細を集計から除外し、訂正後の最新結果を使用する。条件未指定時は点検日時の降順（同日時は点検IDの降順）とする。
 
 ### Response
 
@@ -521,6 +529,8 @@ GET /api/inspections
 ```http
 GET /api/inspections/{id}
 ```
+
+点検ヘッダー、点検結果明細、および各明細の訂正・取消履歴を取得する。`ADMIN`、`INSPECTOR` の双方が利用でき、元の点検者および点検日時も返す。
 
 ### Response
 
@@ -549,20 +559,18 @@ POST /api/inspections
 ```json
 {
   "equipmentId": 1,
-  "userId": 1,
-  "inspectionAt": "2026-08-27T23:21:00",
   "comment": "コメント"
 }
 ```
 
 ### Request Fields
 
-| Field          | Type          | Required | Validation  |
-| -------------- | ------------- | -------: | ----------- |
-| `equipmentId`  | Long          |      Yes | -           |
-| `userId`       | Long          |      Yes | -           |
-| `inspectionAt` | LocalDateTime |      Yes | -           |
-| `comment`      | String        |       No | 500文字以内 |
+| Field         | Type   | Required | Validation  |
+| ------------- | ------ | -------: | ----------- |
+| `equipmentId` | Long   |      Yes | 有効な設備  |
+| `comment`     | String |       No | 500文字以内 |
+
+`userId` と `inspectionAt` はリクエストとして受け付けない。点検者は認証済みの `INSPECTOR`、点検日時は登録時のサーバー時刻を使用して記録し、クライアントによる指定・変更を認めない。
 
 ### Response
 
@@ -578,7 +586,7 @@ Validation違反:
 400 Bad Request
 ```
 
-設備またはユーザーが存在しない場合:
+設備が存在しない場合:
 
 ```text
 404 Not Found
@@ -592,27 +600,11 @@ Validation違反:
 PUT /api/inspections/{id}
 ```
 
-Request Bodyは点検登録APIと同じ。
+現在の実装に存在する経路であるが、点検ヘッダーの更新対象と権限は確定要件から決定できない。特に、元の点検者と点検日時は訂正・取消後も変更してはならない。本経路を意図する設計として利用可能とは定義せず、未解決事項とする。
 
-### Response
+### Response（未確定）
 
-成功:
-
-```text
-200 OK
-```
-
-Validation違反:
-
-```text
-400 Bad Request
-```
-
-点検、設備、またはユーザーが存在しない場合:
-
-```text
-404 Not Found
-```
+成功時およびエラー時のHTTPステータスを含むレスポンス仕様は未確定である。本経路を確認済みの利用可能なAPIとして扱わない。
 
 ---
 
@@ -622,19 +614,11 @@ Validation違反:
 DELETE /api/inspections/{id}
 ```
 
-### Response
+現在の実装に存在する経路であるが、点検ヘッダー全体の削除は確定要件に定義がなく、点検結果および監査履歴を物理削除してはならない。本経路を意図する設計として利用可能とは定義せず、未解決事項とする。
 
-成功:
+### Response（未確定）
 
-```text
-204 No Content
-```
-
-対象が存在しない場合:
-
-```text
-404 Not Found
-```
+成功時およびエラー時のHTTPステータスを含むレスポンス仕様は未確定である。本経路を確認済みの利用可能なAPIとして扱わない。
 
 ---
 
@@ -646,7 +630,7 @@ Base Path:
 /api/inspection-results
 ```
 
-すべてのAPIで認証および `ADMIN` Roleが必要。
+参照APIは履歴閲覧として `ADMIN`、`INSPECTOR` の双方、登録APIは `INSPECTOR` の認証が必要。訂正・取消APIは `ADMIN`、または対象点検を登録した `INSPECTOR` が利用できる。
 
 ## 6.1 点検結果一覧取得
 
@@ -667,6 +651,8 @@ GET /api/inspection-results
 ```http
 GET /api/inspection-results/{id}
 ```
+
+現在値、取消状態、点検実施時の判定条件スナップショット、および訂正・取消履歴を取得する。
 
 ### Response
 
@@ -770,6 +756,9 @@ BOOLEAN例:
 
 - 点検項目は対象設備に属している必要がある
 - 同一の `inspectionId` と `inspectionItemId` の組み合わせを重複登録できない
+- 対象の点検は、認証中の `INSPECTOR` が登録した点検でなければならない
+- `result` はクライアントから受け付けず、サーバーが自動判定する
+- 自動判定が `NG` の場合、`comment` は必須かつ空白のみ不可
 
 ### NOT_APPLICABLE
 
@@ -832,7 +821,35 @@ NOT_APPLICABLE
 PUT /api/inspection-results/{id}
 ```
 
-Request Bodyおよび業務ルールは点検結果登録と同じ。
+点検結果明細1件を訂正する。`ADMIN` は全件、`INSPECTOR` は元の点検者が自分である明細のみ訂正できる。権限はサーバー側で、認証中の利用者のロールと `inspection.user_id` により検証する。
+
+### Request Body
+
+NUMERIC訂正例:
+
+```json
+{
+  "numericValue": 25.5,
+  "booleanValue": null,
+  "notApplicable": false,
+  "comment": null,
+  "reason": "測定値の転記誤りを訂正"
+}
+```
+
+### Request Fields
+
+| Field           | Type       | Required | Validation                  |
+| --------------- | ---------- | -------: | --------------------------- |
+| `numericValue`  | BigDecimal |       No | 種別依存                    |
+| `booleanValue`  | Boolean    |       No | 種別依存                    |
+| `notApplicable` | Boolean    |      Yes | -                           |
+| `comment`       | String     |       No | 500文字以内。NGの場合は必須 |
+| `reason`        | String     |      Yes | 500文字以内、空白のみ不可   |
+
+`inspectionId`、`inspectionItemId`、`result`、元の点検者および点検日時は変更対象にしない。訂正後の判定は、点検実施時に保存した正常条件のスナップショットからサーバーが再計算する。NGの場合は空白でないコメントを必須とする。
+
+訂正前後の値・判定・コメント、理由、認証済みの操作ユーザー、およびサーバー時刻を `CORRECT` の履歴として追記する。現在値の更新と履歴の追加は同一トランザクションで行い、取消済み明細は訂正できない。
 
 ### Response
 
@@ -854,15 +871,43 @@ Request Bodyおよび業務ルールは点検結果登録と同じ。
 404 Not Found
 ```
 
+権限がない場合:
+
+```text
+403 Forbidden
+```
+
+取消済みの場合:
+
+```text
+400 Bad Request
+```
+
 ---
 
-## 6.6 点検結果削除
+## 6.6 点検結果取消
 
 ```http
 DELETE /api/inspection-results/{id}
 ```
 
-指定された点検結果を削除する。
+指定された点検結果明細を論理的に取り消す。物理削除は行わない。`ADMIN` は全件、`INSPECTOR` は元の点検者が自分である明細のみ取り消せる。
+
+### Request Body（暫定設計案）
+
+取消理由は必須である。ただし、HTTPリクエストでの受渡し形式は確定していない。以下のJSONリクエストボディは、既存のエンドポイントパスとHTTPメソッドを維持するための暫定的な設計案であり、確定したAPI契約ではない。
+
+```json
+{
+  "reason": "重複登録のため取消"
+}
+```
+
+| Field    | Type   | Required | Validation                |
+| -------- | ------ | -------: | ------------------------- |
+| `reason` | String |      Yes | 500文字以内、空白のみ不可 |
+
+対象の `cancelled` を `true` とし、測定値・真偽値・判定・コメント、元の点検者および点検日時を保持する。取消前の値、理由、認証済みの操作ユーザー、およびサーバー時刻を `CANCEL` の履歴として追記する。取消状態の更新と履歴の追加は同一トランザクションで行う。取消済み明細の再訂正・再取消は認めない。
 
 ### Response
 
@@ -876,6 +921,18 @@ DELETE /api/inspection-results/{id}
 
 ```text
 404 Not Found
+```
+
+権限がない場合:
+
+```text
+403 Forbidden
+```
+
+取消済みの場合:
+
+```text
+400 Bad Request
 ```
 
 ---
@@ -931,43 +988,79 @@ DELETE /api/inspection-results/{id}
 
 ## 7.4 InspectionResultResponse
 
-| Field              | Type                           |
-| ------------------ | ------------------------------ |
-| `id`               | Long                           |
-| `inspectionId`     | Long                           |
-| `inspectionItemId` | Long                           |
-| `numericValue`     | BigDecimal                     |
-| `booleanValue`     | Boolean                        |
-| `result`           | `OK` / `NG` / `NOT_APPLICABLE` |
-| `comment`          | String                         |
-| `createdAt`        | LocalDateTime                  |
-| `updatedAt`        | LocalDateTime                  |
+| Field              | Type                              |
+| ------------------ | --------------------------------- |
+| `id`               | Long                              |
+| `inspectionId`     | Long                              |
+| `inspectionItemId` | Long                              |
+| `numericValue`     | BigDecimal                        |
+| `booleanValue`     | Boolean                           |
+| `result`           | `OK` / `NG` / `NOT_APPLICABLE`    |
+| `comment`          | String                            |
+| `cancelled`        | Boolean                           |
+| `history`          | InspectionResultHistoryResponse[] |
+| `createdAt`        | LocalDateTime                     |
+| `updatedAt`        | LocalDateTime                     |
+
+`history` は操作種別（`CORRECT` / `CANCEL`）、操作ユーザー、操作日時、理由、および変更前後の値・判定・コメントを返す。元の登録者は `InspectionResponse.userId` に保持し、訂正・取消の操作者で上書きしない。
+
+## 7.5 InspectionResultHistoryResponse
+
+| Field             | Type                    |
+| ----------------- | ----------------------- |
+| `id`              | Long                    |
+| `action`          | `CORRECT` / `CANCEL`    |
+| `changedBy`       | Long                    |
+| `changedAt`       | LocalDateTime           |
+| `reason`          | String                  |
+| `oldNumericValue` | BigDecimal              |
+| `newNumericValue` | BigDecimal              |
+| `oldBooleanValue` | Boolean                 |
+| `newBooleanValue` | Boolean                 |
+| `oldResult`       | InspectionResult        |
+| `newResult`       | InspectionResult / null |
+| `oldComment`      | String                  |
+| `newComment`      | String                  |
+
+取消時の `newResult` は `null` とする。履歴は追記のみとし、更新・物理削除しない。
 
 ---
 
 # 8. API一覧
 
-| Method | Endpoint                                            | 概要                   | Role  |
-| ------ | --------------------------------------------------- | ---------------------- | ----- |
-| GET    | `/api/equipment`                                    | 設備一覧取得           | ADMIN |
-| POST   | `/api/equipment`                                    | 設備登録               | ADMIN |
-| GET    | `/api/equipment/{id}`                               | 設備詳細取得           | ADMIN |
-| PUT    | `/api/equipment/{id}`                               | 設備更新               | ADMIN |
-| DELETE | `/api/equipment/{id}`                               | 設備削除               | ADMIN |
-| GET    | `/api/inspection-items`                             | 点検項目一覧取得       | ADMIN |
-| GET    | `/api/inspection-items/{id}`                        | 点検項目詳細取得       | ADMIN |
-| POST   | `/api/inspection-items`                             | 点検項目登録           | ADMIN |
-| PUT    | `/api/inspection-items/{id}`                        | 点検項目更新           | ADMIN |
-| DELETE | `/api/inspection-items/{id}`                        | 点検項目削除           | ADMIN |
-| GET    | `/api/inspection-items/equipment/{equipmentId}`     | 設備別点検項目取得     | ADMIN |
-| GET    | `/api/inspections`                                  | 点検一覧取得           | ADMIN |
-| GET    | `/api/inspections/{id}`                             | 点検詳細取得           | ADMIN |
-| POST   | `/api/inspections`                                  | 点検登録               | ADMIN |
-| PUT    | `/api/inspections/{id}`                             | 点検更新               | ADMIN |
-| DELETE | `/api/inspections/{id}`                             | 点検削除               | ADMIN |
-| POST   | `/api/inspection-results`                           | 点検結果登録           | ADMIN |
-| GET    | `/api/inspection-results`                           | 点検結果一覧取得       | ADMIN |
-| GET    | `/api/inspection-results/{id}`                      | 点検結果詳細取得       | ADMIN |
-| GET    | `/api/inspection-results/inspection/{inspectionId}` | 点検単位の結果一覧取得 | ADMIN |
-| PUT    | `/api/inspection-results/{id}`                      | 点検結果更新           | ADMIN |
-| DELETE | `/api/inspection-results/{id}`                      | 点検結果削除           | ADMIN |
+| Method | Endpoint                                            | 概要                       | Role                         |
+| ------ | --------------------------------------------------- | -------------------------- | ---------------------------- |
+| GET    | `/api/equipment`                                    | 設備一覧・検索             | ADMIN, INSPECTOR             |
+| POST   | `/api/equipment`                                    | 設備登録                   | ADMIN                        |
+| GET    | `/api/equipment/{id}`                               | 設備詳細取得               | ADMIN, INSPECTOR             |
+| PUT    | `/api/equipment/{id}`                               | 設備更新                   | ADMIN                        |
+| DELETE | `/api/equipment/{id}`                               | 設備廃止                   | ADMIN                        |
+| GET    | `/api/inspection-items`                             | 点検項目一覧取得           | ADMIN, INSPECTOR             |
+| GET    | `/api/inspection-items/{id}`                        | 点検項目詳細取得           | ADMIN, INSPECTOR             |
+| POST   | `/api/inspection-items`                             | 点検項目登録               | ADMIN                        |
+| PUT    | `/api/inspection-items/{id}`                        | 点検項目更新               | ADMIN                        |
+| DELETE | `/api/inspection-items/{id}`                        | 点検項目無効化             | ADMIN                        |
+| GET    | `/api/inspection-items/equipment/{equipmentId}`     | 設備別点検項目取得         | ADMIN, INSPECTOR             |
+| GET    | `/api/inspections`                                  | 点検履歴一覧・検索         | ADMIN, INSPECTOR             |
+| GET    | `/api/inspections/{id}`                             | 点検履歴詳細・監査履歴取得 | ADMIN, INSPECTOR             |
+| POST   | `/api/inspections`                                  | 点検登録                   | INSPECTOR                    |
+| PUT    | `/api/inspections/{id}`                             | 点検ヘッダー更新（未解決） | 未確定                       |
+| DELETE | `/api/inspections/{id}`                             | 点検ヘッダー削除（未解決） | 未確定                       |
+| POST   | `/api/inspection-results`                           | 点検結果登録               | INSPECTOR                    |
+| GET    | `/api/inspection-results`                           | 点検結果一覧取得           | ADMIN, INSPECTOR             |
+| GET    | `/api/inspection-results/{id}`                      | 点検結果・監査履歴取得     | ADMIN, INSPECTOR             |
+| GET    | `/api/inspection-results/inspection/{inspectionId}` | 点検単位の結果一覧取得     | ADMIN, INSPECTOR             |
+| PUT    | `/api/inspection-results/{id}`                      | 点検結果訂正               | ADMIN, 登録者本人のINSPECTOR |
+| DELETE | `/api/inspection-results/{id}`                      | 点検結果取消（論理取消）   | ADMIN, 登録者本人のINSPECTOR |
+
+---
+
+# 9. 要件対応と未解決事項
+
+本設計の点検結果訂正・取消は、FR-031～FR-035、FR-056～FR-060、およびBR-043～BR-047に対応する。登録時の自動判定・NGコメント必須・点検者と点検日時の自動記録は、FR-037～FR-043に対応する。
+
+以下は正本資料だけではAPIの詳細を確定できないため、実装時に別途決定する。
+
+- 点検履歴検索のクエリパラメータ名、日付形式およびページング表現。検索機能と検索条件、包含範囲、並び順および1ページ20件という要件は確定している。
+- `PUT /api/inspections/{id}` と `DELETE /api/inspections/{id}` の扱い。現在の実装には経路が存在するが、点検ヘッダーの更新・削除は確定要件に定義されていない。少なくとも元の点検者・点検日時・点検結果・監査履歴を変更または物理削除してはならない。
+- 取消理由を伴う `DELETE /api/inspection-results/{id}` のリクエストボディ形式。取消理由の必須性は確定しているが、正本資料ではHTTP上の受渡し形式までは定義されていない。本書では既存のHTTPメソッドを維持する案を示している。
