@@ -405,9 +405,7 @@ Logsへ出力する。
 
 障害発生時やデプロイ失敗時の原因調査に利用する。
 
-ログ保持期間はポートフォリオ用途を考慮し、必要最低限とする。
-
-具体的な保持期間は構築時に決定する。
+CloudWatch Logsのロググループには、30日間の保持期間を設定する。
 
 ### 13.2 CloudWatch Alarm
 
@@ -782,7 +780,6 @@ AWSアカウントを先に作成して試行錯誤するのではなく、ロ�
 - RDSバックアップ保持期間
 - ALB Health Check Path
 - ALB Health Check間隔・閾値
-- CloudWatch Logs保持期間
 - CloudWatch Alarmの監視対象・閾値
 - Cost Anomaly Detectionの具体的な通知・判定条件
 - コスト緊急停止処理の具体的な実装
