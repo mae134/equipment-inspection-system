@@ -73,7 +73,7 @@ Hosted Zone自体の新規作成・選択はRestoreスクリプトの対象外�
 
 ## 4. RDS Backup方針
 
-Destroy時は原則としてRDS Manual Snapshotを作成する。
+RDSを削除するDestroyでは、削除のたびに新しいRDS Manual Snapshotを作成する。
 
 ```text
 Human Confirmation
@@ -87,9 +87,9 @@ Snapshot available待機
 TerraformによるRuntime Resources削除
 ```
 
-Snapshot作成またはavailable確認に失敗した場合は、Terraformによる削除へ進まない。
+作成したSnapshotのステータスが`available`であることを確認してから、TerraformによるRDS削除へ進む。Snapshot作成または`available`確認に失敗した場合は削除へ進まない。
 
-`--skip-snapshot`を指定するとSnapshot作成を省略できる。ただし、既存の復元可能なバックアップを確認した場合などに限定して使用する。
+現行スクリプトは`--skip-snapshot`をサポートしているが、このオプションはRDS削除前の新規Snapshot取得を省略するため、NFR-035、NFR-036、OP-020、OP-021およびOP-029に準拠しない。要件準拠の運用手順では使用しない。本Issueではスクリプト自体は変更せず、既存挙動と意図する運用手順の差異として扱う。
 
 Snapshotは自動削除しない。不要なSnapshotは保持状況を確認して手動で削除する。
 
@@ -121,7 +121,6 @@ Terraform削除計画の安全性確認
 「DESTROY」の完全一致入力
  ↓
 RDS Manual Snapshot作成・available待機
-   （--skip-snapshot時は省略）
  ↓
 TerraformによるRuntime Resources削除
 ```
@@ -320,7 +319,7 @@ DestroyとRestoreでは誤操作防止のため、異なる承認方式を採用
 
 オプション：
 
-- `--skip-snapshot`
+- `--skip-snapshot`（現行スクリプトに存在するが、要件準拠の運用では使用不可）
 - `--help`
 
 ### Restore
@@ -415,16 +414,16 @@ bash scripts/aws/destroy-aws-environment.sh
 - Snapshot作成完了後にRuntime Resourcesを削除する。
 - 作成したManual Snapshotは削除後も保持する。
 
-### 14.2 Destroy（RDS Snapshot作成なし）
+### 14.2 Destroy（RDS Snapshot作成なし：現行スクリプトの非準拠動作）
 
 ```bash
 bash scripts/aws/destroy-aws-environment.sh --skip-snapshot
 ```
 
-- RDS Manual Snapshotの作成を省略する。
-- `DESTROY`の完全一致入力による承認は省略しない。
-- 保存が必要なデータがない場合、または復元可能なバックアップを別途確認した場合に限って使用する。
-- RDSに未保存のデータがある場合、削除によって復元できなくなる可能性がある。
+- 現行スクリプトではRDS Manual Snapshotの作成を省略できる。
+- この動作は、RDS削除のたびに新しいManual Snapshotを取得し、`available`を確認してから削除する確定要件に準拠しないため、通常運用では使用しない。
+- 本節は現行スクリプトの挙動を識別するために残すものであり、許可された運用手順を示すものではない。
+- スクリプトから本オプションを除去または無効化する対応は、本Issueの対象外とする。
 
 ### 14.3 Restore（RDS Snapshotから復元）
 
@@ -514,7 +513,7 @@ sys     0m2.145s
 ### 14.6 注意事項
 
 - Destroy前にAWS Account、IAM Role、Terraform Planの削除対象を確認する。
-- `--skip-snapshot`はデータ損失の可能性を理解したうえで使用する。
+- 現行スクリプトの`--skip-snapshot`は要件非準拠であるため使用しない。
 - Restore完了後はHTTPS疎通、ログイン、DBデータ保持状況を手動で確認する。
 - AWSへの変更開始後に異常終了した場合は、Terraform StateとAWSリソースの状態を確認してから再実行する。
 - Manual Snapshotは自動削除されず、保持中はストレージ料金が発生する場合がある。
@@ -790,7 +789,7 @@ Issue #99の対象外とする。
 
 \***\*結果：成功\*\***
 
-RDS Manual Snapshotを作成する通常のDestroyと、Snapshot作成を省略する`--skip-snapshot`の両方を実環境で検証した。
+RDS Manual Snapshotを作成するDestroyと、Snapshot作成を省略する`--skip-snapshot`の両方を実環境で検証した。以下は当時実行した事実の記録であり、`--skip-snapshot`を現在の要件準拠手順として承認するものではない。
 
 \***\*Manual Snapshotあり\*\***
 
@@ -871,7 +870,7 @@ RDS Manual Snapshotを作成する通常のDestroyと、Snapshot作成を省略�
 
 新規RDS作成によるRestoreの動作確認後、
 
-`--skip-snapshot`を指定して最終Destroyを実施した。
+当時は`--skip-snapshot`を指定して最終Destroyを実施した。この記載は過去の実行結果を保持するものであり、現在の要件準拠手順では同オプションを使用しない。
 
 - Terraformによる47リソースの削除に成功
 - Destroyスクリプトが正常終了（Exit code：`0`）
