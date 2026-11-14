@@ -2,6 +2,7 @@ package com.mae134.equipmentinspection.security;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -12,11 +13,16 @@ public class SecurityConfig {
 
   @Bean
   public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+
     http.authorizeHttpRequests(
             auth ->
                 auth.requestMatchers("/login", "/h2-console/**")
                     .permitAll()
                     .requestMatchers("/api/**")
+                    .hasRole("ADMIN")
+                    .requestMatchers(HttpMethod.GET, "/equipment/new")
+                    .hasRole("ADMIN")
+                    .requestMatchers(HttpMethod.POST, "/equipment")
                     .hasRole("ADMIN")
                     .requestMatchers("/equipment/*/inspections/**")
                     .hasAnyRole("ADMIN", "INSPECTOR")
