@@ -19,6 +19,9 @@
       />
       <button type="submit">検索</button>
     </form>
+    <div class="equipment-actions">
+      <a th:href="@{/equipment/new}">新規登録</a>
+    </div>
     <h2>設備一覧</h2>
     <table border="1" th:unless="${#lists.isEmpty(equipmentList)}">
       <thead>
