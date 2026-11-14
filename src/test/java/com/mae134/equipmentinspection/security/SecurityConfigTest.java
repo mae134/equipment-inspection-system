@@ -5,9 +5,9 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
 import org.junit.jupiter.api.Test;
@@ -20,8 +20,7 @@ import org.springframework.test.web.servlet.MockMvc;
 @AutoConfigureMockMvc
 class SecurityConfigTest {
 
-  @Autowired
-  private MockMvc mockMvc;
+  @Autowired private MockMvc mockMvc;
 
   @Test
   void unauthenticatedUserCannotAccessProtectedApi() throws Exception {
@@ -128,7 +127,6 @@ class SecurityConfigTest {
                 .param("name", ""))
         .andExpect(status().isOk())
         .andExpect(view().name("equipment-create"))
-        .andExpect(model().attributeHasFieldErrors(
-            "equipmentForm", "equipmentCode", "name"));
+        .andExpect(model().attributeHasFieldErrors("equipmentForm", "equipmentCode", "name"));
   }
 }

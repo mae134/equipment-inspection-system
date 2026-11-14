@@ -1,11 +1,13 @@
-
 package com.mae134.equipmentinspection.equipment;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 
+import com.mae134.equipmentinspection.exception.DuplicateResourceException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -16,16 +18,11 @@ import org.springframework.ui.Model;
 import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.servlet.mvc.support.RedirectAttributesModelMap;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.doThrow;
-
-import com.mae134.equipmentinspection.exception.DuplicateResourceException;
 
 @ExtendWith(MockitoExtension.class)
 class EquipmentPageControllerTest {
 
-  @Mock
-  private EquipmentService equipmentService;
+  @Mock private EquipmentService equipmentService;
 
   private EquipmentPageController controller;
 
@@ -57,9 +54,7 @@ class EquipmentPageControllerTest {
     String viewName = controller.createEquipment(form, bindingResult, redirectAttributes);
 
     assertEquals("redirect:/dashboard", viewName);
-    assertEquals(
-        "設備を登録しました",
-        redirectAttributes.getFlashAttributes().get("successMessage"));
+    assertEquals("設備を登録しました", redirectAttributes.getFlashAttributes().get("successMessage"));
 
     verify(equipmentService).save(any(EquipmentRequest.class));
   }
@@ -84,8 +79,6 @@ class EquipmentPageControllerTest {
     assertTrue(bindingResult.hasFieldErrors("equipmentCode"));
 
     assertEquals(
-        "設備コードは既に登録されています",
-        bindingResult.getFieldError("equipmentCode").getDefaultMessage());
+        "設備コードは既に登録されています", bindingResult.getFieldError("equipmentCode").getDefaultMessage());
   }
-
 }

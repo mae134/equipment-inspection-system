@@ -1,4 +1,3 @@
-
 package com.mae134.equipmentinspection.equipment;
 
 import com.mae134.equipmentinspection.exception.DuplicateResourceException;
@@ -39,15 +38,11 @@ public class EquipmentPageController {
     try {
       equipmentService.save(form.toRequest());
     } catch (DuplicateResourceException e) {
-      bindingResult.rejectValue(
-          "equipmentCode",
-          "duplicate",
-          "設備コードは既に登録されています");
+      bindingResult.rejectValue("equipmentCode", "duplicate", "設備コードは既に登録されています");
       return "equipment-create";
     }
 
-    redirectAttributes.addFlashAttribute(
-        "successMessage", "設備を登録しました");
+    redirectAttributes.addFlashAttribute("successMessage", "設備を登録しました");
 
     return "redirect:/dashboard";
   }

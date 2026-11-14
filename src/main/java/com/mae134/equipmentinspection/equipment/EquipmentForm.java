@@ -1,4 +1,3 @@
-
 package com.mae134.equipmentinspection.equipment;
 
 import jakarta.validation.constraints.Min;
