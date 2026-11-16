@@ -1,0 +1,134 @@
+<!doctype html>
+<html
+  lang="ja"
+  xmlns:th="http://www.thymeleaf.org"
+  xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>設備詳細</title>
+    <link rel="stylesheet" th:href="@{/css/equipment-detail.css}" />
+  </head>
+  <body>
+    <main class="page-container">
+      <header class="page-header">
+        <a class="back-link" th:href="@{/dashboard}">
+          ← ダッシュボードに戻る
+        </a>
+        <h1>設備詳細</h1>
+        <p class="page-description">登録済み設備の詳細情報を確認できます。</p>
+      </header>
+
+      <section class="detail-card" aria-label="設備情報">
+        <h2>基本情報</h2>
+
+        <dl class="detail-grid">
+          <div class="detail-group">
+            <dt>設備コード</dt>
+            <dd th:text="${equipment.equipmentCode}">EQ-001</dd>
+          </div>
+
+          <div class="detail-group">
+            <dt>設備名</dt>
+            <dd th:text="${equipment.name}">テスト設備</dd>
+          </div>
+
+          <div class="detail-group">
+            <dt>メーカー</dt>
+            <dd th:text="${equipment.manufacturer} ?: '未設定'">未設定</dd>
+          </div>
+
+          <div class="detail-group">
+            <dt>型番</dt>
+            <dd th:text="${equipment.model} ?: '未設定'">未設定</dd>
+          </div>
+
+          <div class="detail-group">
+            <dt>設置場所</dt>
+            <dd th:text="${equipment.location} ?: '未設定'">未設定</dd>
+          </div>
+
+          <div class="detail-group">
+            <dt>設置日</dt>
+            <dd
+              th:text="${equipment.installedDate != null ? #temporals.format(equipment.installedDate, 'yyyy/MM/dd') : '未設定'}"
+            >
+              未設定
+            </dd>
+          </div>
+
+          <div class="detail-group">
+            <dt>点検周期</dt>
+            <dd
+              th:text="${equipment.inspectionCycleDays != null ? equipment.inspectionCycleDays + ' 日' : '未設定'}"
+            >
+              未設定
+            </dd>
+          </div>
+
+          <div class="detail-group detail-group-full">
+            <dt>備考</dt>
+            <dd
+              class="description"
+              th:text="${equipment.description} ?: '未設定'"
+            >
+              未設定
+            </dd>
+          </div>
+
+          <div class="detail-group">
+            <dt>作成日時</dt>
+            <dd
+              th:text="${equipment.createdAt != null ? #temporals.format(equipment.createdAt, 'yyyy/MM/dd HH:mm') : '未設定'}"
+            >
+              未設定
+            </dd>
+          </div>
+
+          <div class="detail-group">
+            <dt>更新日時</dt>
+            <dd
+              th:text="${equipment.updatedAt != null ? #temporals.format(equipment.updatedAt, 'yyyy/MM/dd HH:mm') : '未設定'}"
+            >
+              未設定
+            </dd>
+          </div>
+        </dl>
+
+        <nav class="detail-actions" aria-label="設備操作">
+          <!-- #154 実装後に編集画面へのリンクを有効化 -->
+          <span
+            class="button button-disabled"
+            sec:authorize="hasRole('ADMIN')"
+            title="設備編集画面は今後実装予定です"
+            >編集（準備中）</span
+          >
+
+          <!-- #153 実装後に点検項目設定画面へのリンクを有効化 -->
+          <span
+            class="button button-disabled"
+            sec:authorize="hasRole('ADMIN')"
+            title="点検項目設定画面は今後実装予定です"
+            >点検項目設定（準備中）</span
+          >
+
+          <a
+            class="button button-primary"
+            sec:authorize="hasRole('INSPECTOR')"
+            th:href="@{/equipment/{id}/inspections/new(id=${equipment.id})}"
+            >点検実施</a
+          >
+
+          <a
+            class="button button-secondary"
+            th:href="@{/equipment/{id}/inspections(id=${equipment.id})}"
+            >点検履歴</a
+          >
+
+          <a class="button button-secondary" th:href="@{/dashboard}"> 戻る </a>
+        </nav>
+      </section>
+    </main>
+  </body>
+</html>

@@ -5,11 +5,17 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
+import com.mae134.equipmentinspection.equipment.EquipmentRepository;
+import com.mae134.equipmentinspection.equipment.EquipmentRequest;
+import com.mae134.equipmentinspection.equipment.EquipmentResponse;
+import com.mae134.equipmentinspection.equipment.EquipmentService;
+import java.time.LocalDate;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -21,6 +27,10 @@ import org.springframework.test.web.servlet.MockMvc;
 class SecurityConfigTest {
 
   @Autowired private MockMvc mockMvc;
+
+  @Autowired private EquipmentService equipmentService;
+
+  @Autowired private EquipmentRepository equipmentRepository;
 
   @Test
   void unauthenticatedUserCannotAccessProtectedApi() throws Exception {
@@ -128,5 +138,87 @@ class SecurityConfigTest {
         .andExpect(status().isOk())
         .andExpect(view().name("equipment-create"))
         .andExpect(model().attributeHasFieldErrors("equipmentForm", "equipmentCode", "name"));
+  }
+
+  @Test
+  void adminCanAccessEquipmentDetailPage() throws Exception {
+    mockMvc
+        .perform(get("/equipment/999999999").with(user("admin@example.com").roles("ADMIN")))
+        .andExpect(status().isNotFound());
+  }
+
+  @Test
+  void inspectorCanAccessEquipmentDetailPage() throws Exception {
+    mockMvc
+        .perform(get("/equipment/999999999").with(user("inspector@example.com").roles("INSPECTOR")))
+        .andExpect(status().isNotFound());
+  }
+
+  @Test
+  void unauthenticatedUserCannotAccessEquipmentDetailPage() throws Exception {
+    mockMvc
+        .perform(get("/equipment/999999999"))
+        .andExpect(status().is3xxRedirection())
+        .andExpect(redirectedUrl("/login"));
+  }
+
+  @Test
+  void otherRoleCannotAccessEquipmentDetailPage() throws Exception {
+    mockMvc
+        .perform(get("/equipment/999999999").with(user("viewer@example.com").roles("VIEWER")))
+        .andExpect(status().isForbidden());
+  }
+
+  private EquipmentResponse createTestEquipment() {
+    EquipmentRequest request =
+        new EquipmentRequest(
+            "TEST-DETAIL-152",
+            "詳細画面テスト設備",
+            "テストメーカー",
+            "MODEL-152",
+            "工場A",
+            LocalDate.of(2026, 11, 16),
+            30,
+            "詳細画面の表示確認",
+            true);
+
+    return equipmentService.save(request);
+  }
+
+  @Test
+  void adminCanViewEquipmentDetailPage() throws Exception {
+    EquipmentResponse equipment = createTestEquipment();
+
+    try {
+      mockMvc
+          .perform(
+              get("/equipment/{equipmentId}", equipment.id())
+                  .with(user("admin@example.com").roles("ADMIN")))
+          .andExpect(status().isOk())
+          .andExpect(view().name("equipment-detail"))
+          .andExpect(model().attributeExists("equipment"))
+          .andExpect(content().string(org.hamcrest.Matchers.containsString("詳細画面テスト設備")))
+          .andExpect(content().string(org.hamcrest.Matchers.containsString("TEST-DETAIL-152")));
+    } finally {
+      equipmentRepository.deleteById(equipment.id());
+    }
+  }
+
+  @Test
+  void inspectorCanViewEquipmentDetailPage() throws Exception {
+    EquipmentResponse equipment = createTestEquipment();
+
+    try {
+      mockMvc
+          .perform(
+              get("/equipment/{equipmentId}", equipment.id())
+                  .with(user("inspector@example.com").roles("INSPECTOR")))
+          .andExpect(status().isOk())
+          .andExpect(view().name("equipment-detail"))
+          .andExpect(model().attributeExists("equipment"))
+          .andExpect(content().string(org.hamcrest.Matchers.containsString("詳細画面テスト設備")));
+    } finally {
+      equipmentRepository.deleteById(equipment.id());
+    }
   }
 }

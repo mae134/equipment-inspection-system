@@ -45,6 +45,7 @@
           <td th:text="${equipment.location}"></td>
           <td>
             <div class="action-links">
+              <a th:href="@{/equipment/{id}(id=${equipment.id})}"> 詳細 </a>
               <a
                 th:href="@{/equipment/{id}/inspections/new(id=${equipment.id})}"
               >

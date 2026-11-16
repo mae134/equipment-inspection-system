@@ -2,12 +2,15 @@ package com.mae134.equipmentinspection.equipment;
 
 import com.mae134.equipmentinspection.exception.DuplicateResourceException;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Controller
@@ -45,5 +48,21 @@ public class EquipmentPageController {
     redirectAttributes.addFlashAttribute("successMessage", "設備を登録しました");
 
     return "redirect:/dashboard";
+  }
+
+  @GetMapping("/equipment/{equipmentId}")
+  public String showEquipmentDetail(@PathVariable Long equipmentId, Model model) {
+
+    EquipmentResponse equipment =
+        equipmentService
+            .findById(equipmentId)
+            .orElseThrow(
+                () ->
+                    new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Equipment not found: " + equipmentId));
+
+    model.addAttribute("equipment", equipment);
+
+    return "equipment-detail";
   }
 }
