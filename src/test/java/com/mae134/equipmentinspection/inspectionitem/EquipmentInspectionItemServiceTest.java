@@ -10,8 +10,10 @@ import static org.mockito.Mockito.when;
 
 import com.mae134.equipmentinspection.equipment.Equipment;
 import com.mae134.equipmentinspection.equipment.EquipmentRepository;
+import com.mae134.equipmentinspection.exception.DuplicateResourceException;
 import com.mae134.equipmentinspection.exception.ResourceNotFoundException;
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -225,5 +227,65 @@ class EquipmentInspectionItemServiceTest {
 
     verify(equipmentRepository).findById(1L);
     verify(inspectionItemRepository).save(any(EquipmentInspectionItem.class));
+  }
+
+  @Test
+  void findByEquipmentIdShouldReturnItemsInDisplayOrder() {
+    Long equipmentId = 1L;
+    Equipment equipment = mock(Equipment.class);
+    when(equipment.getId()).thenReturn(equipmentId);
+
+    EquipmentInspectionItem first = new EquipmentInspectionItem();
+    first.setId(10L);
+    first.setEquipment(equipment);
+    first.setName("モーター温度");
+    first.setDisplayOrder(1);
+
+    EquipmentInspectionItem second = new EquipmentInspectionItem();
+    second.setId(20L);
+    second.setEquipment(equipment);
+    second.setName("振動確認");
+    second.setDisplayOrder(2);
+
+    when(equipmentRepository.existsById(equipmentId)).thenReturn(true);
+    when(inspectionItemRepository.findByEquipmentIdOrderByDisplayOrderAsc(equipmentId))
+        .thenReturn(List.of(first, second));
+
+    List<EquipmentInspectionItemResponse> results =
+        inspectionItemService.findByEquipmentId(equipmentId);
+
+    assertEquals(2, results.size());
+    assertEquals("モーター温度", results.get(0).name());
+    assertEquals("振動確認", results.get(1).name());
+
+    verify(inspectionItemRepository).findByEquipmentIdOrderByDisplayOrderAsc(equipmentId);
+  }
+
+  @Test
+  void saveShouldThrowExceptionWhenNameAlreadyExistsForEquipment() {
+    Equipment equipment = mock(Equipment.class);
+
+    EquipmentInspectionItemRequest request =
+        new EquipmentInspectionItemRequest(
+            1L,
+            "モーター温度",
+            InspectionItemType.NUMERIC,
+            "℃",
+            new BigDecimal("0"),
+            new BigDecimal("80"),
+            null,
+            "モーター表面温度",
+            1,
+            true);
+
+    when(equipmentRepository.findById(1L)).thenReturn(Optional.of(equipment));
+
+    when(inspectionItemRepository.existsByEquipmentIdAndName(1L, "モーター温度")).thenReturn(true);
+
+    assertThrows(DuplicateResourceException.class, () -> inspectionItemService.save(request));
+
+    verify(inspectionItemRepository).existsByEquipmentIdAndName(1L, "モーター温度");
+
+    verify(inspectionItemRepository, never()).save(any(EquipmentInspectionItem.class));
   }
 }

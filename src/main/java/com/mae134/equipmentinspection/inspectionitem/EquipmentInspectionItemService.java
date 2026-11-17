@@ -2,6 +2,7 @@ package com.mae134.equipmentinspection.inspectionitem;
 
 import com.mae134.equipmentinspection.equipment.Equipment;
 import com.mae134.equipmentinspection.equipment.EquipmentRepository;
+import com.mae134.equipmentinspection.exception.DuplicateResourceException;
 import com.mae134.equipmentinspection.exception.ResourceNotFoundException;
 import java.util.List;
 import org.springframework.stereotype.Service;
@@ -30,6 +31,11 @@ public class EquipmentInspectionItemService {
                     new ResourceNotFoundException("Equipment not found: " + request.equipmentId()));
 
     validateRequest(request);
+
+    if (inspectionItemRepository.existsByEquipmentIdAndName(
+        request.equipmentId(), request.name())) {
+      throw new DuplicateResourceException("点検項目名は既に登録されています");
+    }
 
     EquipmentInspectionItem inspectionItem = new EquipmentInspectionItem();
 
@@ -68,7 +74,7 @@ public class EquipmentInspectionItemService {
       throw new ResourceNotFoundException("Equipment not found: " + equipmentId);
     }
 
-    return inspectionItemRepository.findByEquipmentId(equipmentId).stream()
+    return inspectionItemRepository.findByEquipmentIdOrderByDisplayOrderAsc(equipmentId).stream()
         .map(this::toResponse)
         .toList();
   }
