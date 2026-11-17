@@ -23,12 +23,10 @@ public class EquipmentInspectionItemService {
 
   public EquipmentInspectionItemResponse save(EquipmentInspectionItemRequest request) {
 
-    Equipment equipment =
-        equipmentRepository
-            .findById(request.equipmentId())
-            .orElseThrow(
-                () ->
-                    new ResourceNotFoundException("Equipment not found: " + request.equipmentId()));
+    Equipment equipment = equipmentRepository
+        .findById(request.equipmentId())
+        .orElseThrow(
+            () -> new ResourceNotFoundException("Equipment not found: " + request.equipmentId()));
 
     validateRequest(request);
 
@@ -60,11 +58,10 @@ public class EquipmentInspectionItemService {
   }
 
   public EquipmentInspectionItemResponse findById(Long id) {
-    EquipmentInspectionItem inspectionItem =
-        inspectionItemRepository
-            .findById(id)
-            .orElseThrow(
-                () -> new ResourceNotFoundException("Equipment inspection item not found: " + id));
+    EquipmentInspectionItem inspectionItem = inspectionItemRepository
+        .findById(id)
+        .orElseThrow(
+            () -> new ResourceNotFoundException("Equipment inspection item not found: " + id));
 
     return toResponse(inspectionItem);
   }
@@ -81,18 +78,15 @@ public class EquipmentInspectionItemService {
 
   public EquipmentInspectionItemResponse update(Long id, EquipmentInspectionItemRequest request) {
 
-    EquipmentInspectionItem inspectionItem =
-        inspectionItemRepository
-            .findById(id)
-            .orElseThrow(
-                () -> new ResourceNotFoundException("Equipment inspection item not found: " + id));
+    EquipmentInspectionItem inspectionItem = inspectionItemRepository
+        .findById(id)
+        .orElseThrow(
+            () -> new ResourceNotFoundException("Equipment inspection item not found: " + id));
 
-    Equipment equipment =
-        equipmentRepository
-            .findById(request.equipmentId())
-            .orElseThrow(
-                () ->
-                    new ResourceNotFoundException("Equipment not found: " + request.equipmentId()));
+    Equipment equipment = equipmentRepository
+        .findById(request.equipmentId())
+        .orElseThrow(
+            () -> new ResourceNotFoundException("Equipment not found: " + request.equipmentId()));
 
     validateRequest(request);
 
@@ -113,40 +107,45 @@ public class EquipmentInspectionItemService {
   }
 
   public void delete(Long id) {
-    EquipmentInspectionItem inspectionItem =
-        inspectionItemRepository
-            .findById(id)
-            .orElseThrow(
-                () -> new ResourceNotFoundException("Equipment inspection item not found: " + id));
+    EquipmentInspectionItem inspectionItem = inspectionItemRepository
+        .findById(id)
+        .orElseThrow(
+            () -> new ResourceNotFoundException("Equipment inspection item not found: " + id));
 
     inspectionItemRepository.delete(inspectionItem);
   }
 
   private void validateRequest(EquipmentInspectionItemRequest request) {
 
-    // 閾値のバリデーション
+    // 数値型のバリデーション
     if (request.type() == InspectionItemType.NUMERIC) {
       if (request.normalBooleanValue() != null) {
-        throw new IllegalArgumentException("NUMERIC type must not have normalBooleanValue");
+        throw new IllegalArgumentException(
+            "数値型の点検項目には真偽値の正常値を設定できません");
       }
 
       if (request.minValue() != null
           && request.maxValue() != null
           && request.minValue().compareTo(request.maxValue()) > 0) {
 
-        throw new IllegalArgumentException("minValue must be less than or equal to maxValue");
+        throw new IllegalArgumentException(
+            "正常範囲の最小値は最大値以下にしてください");
       }
     }
 
-    // BOOLEAN型のバリデーション
+    // 真偽値型のバリデーション
     if (request.type() == InspectionItemType.BOOLEAN) {
       if (request.normalBooleanValue() == null) {
-        throw new IllegalArgumentException("BOOLEAN type requires normalBooleanValue");
+        throw new IllegalArgumentException(
+            "真偽値型の点検項目は正常値を選択してください");
       }
 
-      if (request.unit() != null || request.minValue() != null || request.maxValue() != null) {
+      if (request.unit() != null
+          || request.minValue() != null
+          || request.maxValue() != null) {
 
-        throw new IllegalArgumentException("BOOLEAN type must not have numeric settings");
+        throw new IllegalArgumentException(
+            "真偽値型の点検項目には数値型の設定を指定できません");
       }
     }
   }
