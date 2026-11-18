@@ -52,6 +52,7 @@
                 <th scope="col">項目名</th>
                 <th scope="col">種類</th>
                 <th scope="col">正常条件</th>
+                <th scope="col">説明</th>
                 <th scope="col">状態</th>
                 <th scope="col">操作</th>
               </tr>
@@ -79,6 +80,7 @@
                     いいえ
                   </span>
                 </td>
+                <td th:text="${item.description} ?: '—'"></td>
                 <td>
                   <span
                     class="status-badge"
