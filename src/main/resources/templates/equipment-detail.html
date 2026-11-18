@@ -105,13 +105,13 @@
             >編集（準備中）</span
           >
 
-          <!-- #153 実装後に点検項目設定画面へのリンクを有効化 -->
-          <span
-            class="button button-disabled"
+          <a
+            class="button button-secondary"
             sec:authorize="hasRole('ADMIN')"
-            title="点検項目設定画面は今後実装予定です"
-            >点検項目設定（準備中）</span
+            th:href="@{/equipment/{id}/inspection-items(id=${equipment.id})}"
           >
+            点検項目設定
+          </a>
 
           <a
             class="button button-primary"

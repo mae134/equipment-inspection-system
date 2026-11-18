@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>点検項目設定</title>
+    <link rel="stylesheet" th:href="@{/css/inspection-item-settings.css}" />
+  </head>
+  <body>
+    <main class="page-container">
+      <header class="page-header">
+        <a class="back-link" th:href="@{/equipment/{id}(id=${equipment.id})}">
+          ← 設備詳細に戻る
+        </a>
+        <h1>点検項目設定</h1>
+        <p class="page-description">設備ごとの点検項目を確認・管理できます。</p>
+      </header>
+
+      <p
+        class="success-message"
+        role="status"
+        th:if="${successMessage}"
+        th:text="${successMessage}"
+      >
+        点検項目を登録しました
+      </p>
+
+      <section class="settings-card" aria-labelledby="equipment-heading">
+        <h2 id="equipment-heading">対象設備</h2>
+        <p class="equipment-summary">
+          <span th:text="${equipment.equipmentCode}">EQ-001</span>
+          <span aria-hidden="true">｜</span>
+          <span th:text="${equipment.name}">モーター設備A</span>
+        </p>
+      </section>
+
+      <section class="settings-card" aria-labelledby="items-heading">
+        <h2 id="items-heading">点検項目一覧</h2>
+
+        <p class="empty-message" th:if="${#lists.isEmpty(inspectionItems)}">
+          点検項目が登録されていません。
+        </p>
+
+        <div
+          class="table-wrapper"
+          th:unless="${#lists.isEmpty(inspectionItems)}"
+        >
+          <table class="items-table">
+            <thead>
+              <tr>
+                <th scope="col">表示順</th>
+                <th scope="col">項目名</th>
+                <th scope="col">種類</th>
+                <th scope="col">正常条件</th>
+                <th scope="col">説明</th>
+                <th scope="col">状態</th>
+                <th scope="col">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr th:each="item : ${inspectionItems}">
+                <td th:text="${item.displayOrder}">1</td>
+                <td th:text="${item.name}">モーター温度</td>
+                <td
+                  th:text="${item.type.name() == 'NUMERIC' ? '数値' : '真偽値'}"
+                >
+                  数値
+                </td>
+                <td>
+                  <span th:if="${item.type.name() == 'NUMERIC'}">
+                    <span th:text="${item.minValue} ?: '下限なし'">0</span>
+                    〜
+                    <span th:text="${item.maxValue} ?: '上限なし'">80</span>
+                    <span th:text="${item.unit} ?: ''">℃</span>
+                  </span>
+                  <span
+                    th:if="${item.type.name() == 'BOOLEAN'}"
+                    th:text="${item.normalBooleanValue ? 'はい' : 'いいえ'}"
+                  >
+                    いいえ
+                  </span>
+                </td>
+                <td th:text="${item.description} ?: '—'"></td>
+                <td>
+                  <span
+                    class="status-badge"
+                    th:classappend="${item.active} ? ' status-active' : ' status-inactive'"
+                    th:text="${item.active} ? '有効' : '無効'"
+                  >
+                    有効
+                  </span>
+                </td>
+                <td>
+                  <a
+                    class="edit-button"
+                    th:href="@{/equipment/{equipmentId}/inspection-items/{itemId}/edit(
+                          equipmentId=${equipment.id},
+                          itemId=${item.id}
+                        )}"
+                  >
+                    編集
+                  </a>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="settings-card" aria-labelledby="form-heading">
+        <h2
+          id="form-heading"
+          th:text="${editingItemId != null} ? '点検項目の編集' : '点検項目の新規登録'"
+        >
+          点検項目の新規登録
+        </h2>
+
+        <form
+          th:action="${editingItemId != null}
+            ? @{/equipment/{equipmentId}/inspection-items/{itemId}/edit(
+                equipmentId=${equipment.id},
+                itemId=${editingItemId}
+              )}
+            : @{/equipment/{id}/inspection-items(id=${equipment.id})}"
+          th:object="${inspectionItemForm}"
+          method="post"
+        >
+          <div
+            class="form-error-summary"
+            role="alert"
+            th:if="${#fields.hasGlobalErrors()}"
+          >
+            <p th:each="error : ${#fields.globalErrors()}" th:text="${error}">
+              入力内容を確認してください。
+            </p>
+          </div>
+
+          <div class="form-field">
+            <label for="name"
+              >点検項目名 <span class="required">必須</span></label
+            >
+            <input
+              id="name"
+              type="text"
+              th:field="*{name}"
+              maxlength="100"
+              required
+            />
+            <p
+              class="field-error"
+              th:if="${#fields.hasErrors('name')}"
+              th:errors="*{name}"
+            ></p>
+          </div>
+
+          <div class="form-field">
+            <label for="type">種類 <span class="required">必須</span></label>
+            <select id="inspectionItemType" th:field="*{type}" required>
+              <option value="">選択してください</option>
+              <option value="NUMERIC">数値</option>
+              <option value="BOOLEAN">真偽値</option>
+            </select>
+            <p
+              class="field-error"
+              th:if="${#fields.hasErrors('type')}"
+              th:errors="*{type}"
+            ></p>
+          </div>
+
+          <fieldset id="numeric-settings" class="form-group">
+            <legend>数値型の設定</legend>
+            <p class="field-hint">
+              種類が「数値」の場合に使用します。正常範囲は省略できます。
+            </p>
+
+            <div class="form-field">
+              <label for="unit">単位</label>
+              <input
+                id="unit"
+                type="text"
+                th:field="*{unit}"
+                maxlength="20"
+                placeholder="例：℃"
+              />
+              <p
+                class="field-error"
+                th:if="${#fields.hasErrors('unit')}"
+                th:errors="*{unit}"
+              ></p>
+            </div>
+
+            <div class="form-row">
+              <div class="form-field">
+                <label for="minValue">正常範囲（最小値）</label>
+                <input
+                  id="minValue"
+                  type="number"
+                  step="any"
+                  th:field="*{minValue}"
+                />
+                <p
+                  class="field-error"
+                  th:if="${#fields.hasErrors('minValue')}"
+                  th:errors="*{minValue}"
+                ></p>
+              </div>
+
+              <div class="form-field">
+                <label for="maxValue">正常範囲（最大値）</label>
+                <input
+                  id="maxValue"
+                  type="number"
+                  step="any"
+                  th:field="*{maxValue}"
+                />
+                <p
+                  class="field-error"
+                  th:if="${#fields.hasErrors('maxValue')}"
+                  th:errors="*{maxValue}"
+                ></p>
+              </div>
+            </div>
+          </fieldset>
+
+          <fieldset id="boolean-settings" class="form-group">
+            <legend>真偽値型の設定</legend>
+            <p class="field-hint">
+              種類が「真偽値」の場合に、正常とみなす値を選択します。
+            </p>
+
+            <div class="form-field">
+              <label for="normalBooleanValue">正常値</label>
+              <select id="normalBooleanValue" th:field="*{normalBooleanValue}">
+                <option value="">選択してください</option>
+                <option value="true">はい</option>
+                <option value="false">いいえ</option>
+              </select>
+              <p
+                class="field-error"
+                th:if="${#fields.hasErrors('normalBooleanValue')}"
+                th:errors="*{normalBooleanValue}"
+              ></p>
+            </div>
+          </fieldset>
+
+          <div class="form-field">
+            <label for="description">説明</label>
+            <textarea
+              id="description"
+              th:field="*{description}"
+              maxlength="500"
+              rows="3"
+            ></textarea>
+            <p
+              class="field-error"
+              th:if="${#fields.hasErrors('description')}"
+              th:errors="*{description}"
+            ></p>
+          </div>
+
+          <div class="form-row">
+            <div class="form-field">
+              <label for="displayOrder">
+                表示順 <span class="required">必須</span>
+              </label>
+              <input
+                id="displayOrder"
+                type="number"
+                min="1"
+                th:field="*{displayOrder}"
+                required
+              />
+              <p
+                class="field-error"
+                th:if="${#fields.hasErrors('displayOrder')}"
+                th:errors="*{displayOrder}"
+              ></p>
+            </div>
+
+            <div class="form-field">
+              <label for="active">
+                状態 <span class="required">必須</span>
+              </label>
+              <select id="active" th:field="*{active}" required>
+                <option value="true">有効</option>
+                <option value="false">無効</option>
+              </select>
+              <p
+                class="field-error"
+                th:if="${#fields.hasErrors('active')}"
+                th:errors="*{active}"
+              ></p>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <a
+              class="cancel-button"
+              th:if="${editingItemId != null}"
+              th:href="@{/equipment/{id}/inspection-items(id=${equipment.id})}"
+            >
+              編集をキャンセル
+            </a>
+
+            <button
+              class="submit-button"
+              type="submit"
+              th:text="${editingItemId != null} ? '更新する' : '登録する'"
+            >
+              登録する
+            </button>
+          </div>
+        </form>
+      </section>
+    </main>
+    <script th:src="@{/js/inspection-item-settings.js}"></script>
+  </body>
+</html>

@@ -7,4 +7,10 @@ public interface EquipmentInspectionItemRepository
     extends JpaRepository<EquipmentInspectionItem, Long> {
 
   List<EquipmentInspectionItem> findByEquipmentId(Long equipmentId);
+
+  List<EquipmentInspectionItem> findByEquipmentIdOrderByDisplayOrderAsc(Long equipmentId);
+
+  boolean existsByEquipmentIdAndName(Long equipmentId, String name);
+
+  boolean existsByEquipmentIdAndNameAndIdNot(Long equipmentId, String name, Long id);
 }

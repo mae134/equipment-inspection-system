@@ -221,4 +221,31 @@ class SecurityConfigTest {
       equipmentRepository.deleteById(equipment.id());
     }
   }
+
+  @Test
+  void adminCanAccessInspectionItemSettingsPage() throws Exception {
+    mockMvc
+        .perform(
+            get("/equipment/1/inspection-items").with(user("admin@example.com").roles("ADMIN")))
+        .andExpect(status().isOk())
+        .andExpect(view().name("inspection-item-settings"))
+        .andExpect(model().attributeExists("equipment", "inspectionItems"));
+  }
+
+  @Test
+  void inspectorCannotAccessInspectionItemSettingsPage() throws Exception {
+    mockMvc
+        .perform(
+            get("/equipment/1/inspection-items")
+                .with(user("inspector@example.com").roles("INSPECTOR")))
+        .andExpect(status().isForbidden());
+  }
+
+  @Test
+  void unauthenticatedUserCannotAccessInspectionItemSettingsPage() throws Exception {
+    mockMvc
+        .perform(get("/equipment/1/inspection-items"))
+        .andExpect(status().is3xxRedirection())
+        .andExpect(redirectedUrl("/login"));
+  }
 }
