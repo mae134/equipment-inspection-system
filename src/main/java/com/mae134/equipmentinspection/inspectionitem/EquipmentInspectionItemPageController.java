@@ -81,4 +81,63 @@ public class EquipmentInspectionItemPageController {
     model.addAttribute("equipment", equipment);
     model.addAttribute("inspectionItems", inspectionItems);
   }
+
+  @GetMapping("/equipment/{equipmentId}/inspection-items/{itemId}/edit")
+  public String showEditInspectionItem(
+      @PathVariable Long equipmentId, @PathVariable Long itemId, Model model) {
+
+    populatePageModel(equipmentId, model);
+
+    EquipmentInspectionItemResponse item = inspectionItemService.findById(itemId);
+
+    // URLの設備IDと点検項目の所属設備IDが一致するか確認
+    if (!item.equipmentId().equals(equipmentId)) {
+      throw new ResponseStatusException(
+          HttpStatus.NOT_FOUND, "Inspection item not found for equipment: " + equipmentId);
+    }
+
+    model.addAttribute("inspectionItemForm", EquipmentInspectionItemForm.fromResponse(item));
+
+    model.addAttribute("editingItemId", itemId);
+
+    return "inspection-item-settings";
+  }
+
+  @PostMapping("/equipment/{equipmentId}/inspection-items/{itemId}/edit")
+  public String updateInspectionItem(
+      @PathVariable Long equipmentId,
+      @PathVariable Long itemId,
+      @Valid @ModelAttribute("inspectionItemForm") EquipmentInspectionItemForm form,
+      BindingResult bindingResult,
+      Model model,
+      RedirectAttributes redirectAttributes) {
+
+    // 編集対象が指定設備に所属しているか確認
+    EquipmentInspectionItemResponse item = inspectionItemService.findById(itemId);
+
+    if (!item.equipmentId().equals(equipmentId)) {
+      throw new ResponseStatusException(
+          HttpStatus.NOT_FOUND, "Inspection item not found for equipment: " + equipmentId);
+    }
+
+    if (!bindingResult.hasErrors()) {
+      try {
+        inspectionItemService.update(itemId, form.toRequest(equipmentId));
+      } catch (DuplicateResourceException e) {
+        bindingResult.rejectValue("name", "duplicate", "点検項目名は既に登録されています");
+      } catch (IllegalArgumentException e) {
+        bindingResult.reject("invalidSettings", e.getMessage());
+      }
+    }
+
+    if (bindingResult.hasErrors()) {
+      populatePageModel(equipmentId, model);
+      model.addAttribute("editingItemId", itemId);
+      return "inspection-item-settings";
+    }
+
+    redirectAttributes.addFlashAttribute("successMessage", "点検項目を更新しました");
+
+    return "redirect:/equipment/" + equipmentId + "/inspection-items";
+  }
 }

@@ -289,3 +289,85 @@ h2 {
     padding: 16px;
   }
 }
+
+/* 一覧の編集リンク */
+.edit-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background-color: #fff;
+  color: #334155;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.edit-button:hover {
+  background-color: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+/* フォーム下部のボタン配置 */
+.form-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+/* キャンセルボタン */
+.cancel-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 20px;
+  min-height: 42px;
+  box-sizing: border-box;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background-color: #fff;
+  color: #334155;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.cancel-button:hover {
+  background-color: #f1f5f9;
+}
+
+/* 登録・更新ボタン */
+.form-actions .submit-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 10px 20px;
+  box-sizing: border-box;
+  white-space: nowrap;
+}
+
+/* スマートフォン対応 */
+@media (max-width: 600px) {
+  .form-actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .form-actions .submit-button,
+  .form-actions .cancel-button {
+    width: 100%;
+    text-align: center;
+  }
+}
+
+.form-group[hidden] {
+  display: none;
+}

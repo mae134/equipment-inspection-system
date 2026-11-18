@@ -51,4 +51,21 @@ public class EquipmentInspectionItemForm {
         displayOrder,
         active);
   }
+
+  public static EquipmentInspectionItemForm fromResponse(EquipmentInspectionItemResponse response) {
+
+    EquipmentInspectionItemForm form = new EquipmentInspectionItemForm();
+
+    form.setName(response.name());
+    form.setType(response.type());
+    form.setUnit(response.unit());
+    form.setMinValue(response.minValue());
+    form.setMaxValue(response.maxValue());
+    form.setNormalBooleanValue(response.normalBooleanValue());
+    form.setDescription(response.description());
+    form.setDisplayOrder(response.displayOrder());
+    form.setActive(response.active());
+
+    return form;
+  }
 }

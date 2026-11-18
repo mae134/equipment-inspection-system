@@ -53,6 +53,7 @@
                 <th scope="col">種類</th>
                 <th scope="col">正常条件</th>
                 <th scope="col">状態</th>
+                <th scope="col">操作</th>
               </tr>
             </thead>
             <tbody>
@@ -87,21 +88,38 @@
                     有効
                   </span>
                 </td>
+                <td>
+                  <a
+                    class="edit-button"
+                    th:href="@{/equipment/{equipmentId}/inspection-items/{itemId}/edit(
+                          equipmentId=${equipment.id},
+                          itemId=${item.id}
+                        )}"
+                  >
+                    編集
+                  </a>
+                </td>
               </tr>
             </tbody>
           </table>
         </div>
-
-        <p class="field-hint">
-          ※ 編集・有効化・無効化の操作は後続ステップで実装します。
-        </p>
       </section>
 
-      <section class="settings-card" aria-labelledby="create-heading">
-        <h2 id="create-heading">点検項目の新規登録</h2>
+      <section class="settings-card" aria-labelledby="form-heading">
+        <h2
+          id="form-heading"
+          th:text="${editingItemId != null} ? '点検項目の編集' : '点検項目の新規登録'"
+        >
+          点検項目の新規登録
+        </h2>
 
         <form
-          th:action="@{/equipment/{id}/inspection-items(id=${equipment.id})}"
+          th:action="${editingItemId != null}
+            ? @{/equipment/{equipmentId}/inspection-items/{itemId}/edit(
+                equipmentId=${equipment.id},
+                itemId=${editingItemId}
+              )}
+            : @{/equipment/{id}/inspection-items(id=${equipment.id})}"
           th:object="${inspectionItemForm}"
           method="post"
         >
@@ -135,7 +153,7 @@
 
           <div class="form-field">
             <label for="type">種類 <span class="required">必須</span></label>
-            <select id="type" th:field="*{type}" required>
+            <select id="inspectionItemType" th:field="*{type}" required>
               <option value="">選択してください</option>
               <option value="NUMERIC">数値</option>
               <option value="BOOLEAN">真偽値</option>
@@ -147,7 +165,7 @@
             ></p>
           </div>
 
-          <fieldset class="form-group">
+          <fieldset id="numeric-settings" class="form-group">
             <legend>数値型の設定</legend>
             <p class="field-hint">
               種類が「数値」の場合に使用します。正常範囲は省略できます。
@@ -202,7 +220,7 @@
             </div>
           </fieldset>
 
-          <fieldset class="form-group">
+          <fieldset id="boolean-settings" class="form-group">
             <legend>真偽値型の設定</legend>
             <p class="field-hint">
               種類が「真偽値」の場合に、正常とみなす値を選択します。
@@ -274,10 +292,25 @@
           </div>
 
           <div class="form-actions">
-            <button class="submit-button" type="submit">登録する</button>
+            <a
+              class="cancel-button"
+              th:if="${editingItemId != null}"
+              th:href="@{/equipment/{id}/inspection-items(id=${equipment.id})}"
+            >
+              編集をキャンセル
+            </a>
+
+            <button
+              class="submit-button"
+              type="submit"
+              th:text="${editingItemId != null} ? '更新する' : '登録する'"
+            >
+              登録する
+            </button>
           </div>
         </form>
       </section>
     </main>
+    <script th:src="@{/js/inspection-item-settings.js}"></script>
   </body>
 </html>

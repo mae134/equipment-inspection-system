@@ -11,4 +11,6 @@ public interface EquipmentInspectionItemRepository
   List<EquipmentInspectionItem> findByEquipmentIdOrderByDisplayOrderAsc(Long equipmentId);
 
   boolean existsByEquipmentIdAndName(Long equipmentId, String name);
+
+  boolean existsByEquipmentIdAndNameAndIdNot(Long equipmentId, String name, Long id);
 }

@@ -288,4 +288,91 @@ class EquipmentInspectionItemServiceTest {
 
     verify(inspectionItemRepository, never()).save(any(EquipmentInspectionItem.class));
   }
+
+  @Test
+  void updateShouldAllowUnchangedName() {
+    Equipment equipment = mock(Equipment.class);
+    when(equipment.getId()).thenReturn(1L);
+
+    EquipmentInspectionItem existingItem = new EquipmentInspectionItem();
+    existingItem.setId(10L);
+    existingItem.setEquipment(equipment);
+    existingItem.setName("モーター温度");
+
+    EquipmentInspectionItemRequest request =
+        new EquipmentInspectionItemRequest(
+            1L,
+            "モーター温度",
+            InspectionItemType.NUMERIC,
+            "℃",
+            new BigDecimal("0"),
+            new BigDecimal("80"),
+            null,
+            "温度確認",
+            1,
+            true);
+
+    when(inspectionItemRepository.findById(10L)).thenReturn(Optional.of(existingItem));
+    when(inspectionItemRepository.save(existingItem)).thenReturn(existingItem);
+
+    EquipmentInspectionItemResponse response = inspectionItemService.update(10L, request);
+
+    assertEquals("モーター温度", response.name());
+    assertEquals("℃", response.unit());
+
+    verify(inspectionItemRepository).existsByEquipmentIdAndNameAndIdNot(1L, "モーター温度", 10L);
+    verify(inspectionItemRepository).save(existingItem);
+  }
+
+  @Test
+  void updateShouldThrowExceptionWhenNameAlreadyExists() {
+    Equipment equipment = mock(Equipment.class);
+    when(equipment.getId()).thenReturn(1L);
+
+    EquipmentInspectionItem existingItem = new EquipmentInspectionItem();
+    existingItem.setId(10L);
+    existingItem.setEquipment(equipment);
+
+    EquipmentInspectionItemRequest request =
+        new EquipmentInspectionItemRequest(
+            1L, "油漏れ確認", InspectionItemType.BOOLEAN, null, null, null, false, "油漏れの確認", 2, true);
+
+    when(inspectionItemRepository.findById(10L)).thenReturn(Optional.of(existingItem));
+    when(inspectionItemRepository.existsByEquipmentIdAndNameAndIdNot(1L, "油漏れ確認", 10L))
+        .thenReturn(true);
+
+    assertThrows(
+        DuplicateResourceException.class, () -> inspectionItemService.update(10L, request));
+
+    verify(inspectionItemRepository, never()).save(any(EquipmentInspectionItem.class));
+  }
+
+  @Test
+  void updateShouldRejectDifferentEquipmentId() {
+    Equipment equipment = mock(Equipment.class);
+    when(equipment.getId()).thenReturn(1L);
+
+    EquipmentInspectionItem existingItem = new EquipmentInspectionItem();
+    existingItem.setId(10L);
+    existingItem.setEquipment(equipment);
+
+    EquipmentInspectionItemRequest request =
+        new EquipmentInspectionItemRequest(
+            2L,
+            "モーター温度",
+            InspectionItemType.NUMERIC,
+            "℃",
+            new BigDecimal("0"),
+            new BigDecimal("80"),
+            null,
+            "温度確認",
+            1,
+            true);
+
+    when(inspectionItemRepository.findById(10L)).thenReturn(Optional.of(existingItem));
+
+    assertThrows(IllegalArgumentException.class, () -> inspectionItemService.update(10L, request));
+
+    verify(inspectionItemRepository, never()).save(any(EquipmentInspectionItem.class));
+  }
 }
