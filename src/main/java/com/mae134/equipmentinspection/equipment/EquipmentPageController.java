@@ -65,4 +65,58 @@ public class EquipmentPageController {
 
     return "equipment-detail";
   }
+
+  @GetMapping("/equipment/{equipmentId}/edit")
+  public String showEditForm(@PathVariable Long equipmentId, Model model) {
+
+    EquipmentResponse equipment =
+        equipmentService
+            .findById(equipmentId)
+            .orElseThrow(
+                () ->
+                    new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Equipment not found: " + equipmentId));
+
+    model.addAttribute("equipmentId", equipmentId);
+    model.addAttribute("equipmentForm", EquipmentForm.fromResponse(equipment));
+
+    return "equipment-edit";
+  }
+
+  @PostMapping("/equipment/{equipmentId}/edit")
+  public String updateEquipment(
+      @PathVariable Long equipmentId,
+      @Valid @ModelAttribute("equipmentForm") EquipmentForm form,
+      BindingResult bindingResult,
+      Model model,
+      RedirectAttributes redirectAttributes) {
+
+    // 入力エラー時の再表示で、編集画面のURL生成に使用する
+    model.addAttribute("equipmentId", equipmentId);
+
+    if (bindingResult.hasErrors()) {
+      return "equipment-edit";
+    }
+
+    EquipmentResponse existingEquipment =
+        equipmentService
+            .findById(equipmentId)
+            .orElseThrow(
+                () ->
+                    new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Equipment not found: " + equipmentId));
+
+    try {
+      // 編集フォームにないactiveは、既存の値を引き継ぐ
+      equipmentService.update(equipmentId, form.toRequest(existingEquipment.active()));
+
+    } catch (DuplicateResourceException e) {
+      bindingResult.rejectValue("equipmentCode", "duplicate", "設備コードは既に登録されています");
+      return "equipment-edit";
+    }
+
+    redirectAttributes.addFlashAttribute("successMessage", "設備を更新しました");
+
+    return "redirect:/equipment/" + equipmentId;
+  }
 }
