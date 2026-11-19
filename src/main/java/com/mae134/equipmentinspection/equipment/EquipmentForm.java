@@ -39,6 +39,10 @@ public class EquipmentForm {
   private String description;
 
   public EquipmentRequest toRequest() {
+    return toRequest(true);
+  }
+
+  public EquipmentRequest toRequest(boolean active) {
     return new EquipmentRequest(
         equipmentCode,
         name,
@@ -48,6 +52,21 @@ public class EquipmentForm {
         installedDate,
         inspectionCycleDays,
         description,
-        true);
+        active);
+  }
+
+  public static EquipmentForm fromResponse(EquipmentResponse response) {
+    EquipmentForm form = new EquipmentForm();
+
+    form.setEquipmentCode(response.equipmentCode());
+    form.setName(response.name());
+    form.setManufacturer(response.manufacturer());
+    form.setModel(response.model());
+    form.setLocation(response.location());
+    form.setInstalledDate(response.installedDate());
+    form.setInspectionCycleDays(response.inspectionCycleDays());
+    form.setDescription(response.description());
+
+    return form;
   }
 }
