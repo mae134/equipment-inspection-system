@@ -11,11 +11,15 @@ import com.mae134.equipmentinspection.exception.DuplicateResourceException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 @ExtendWith(MockitoExtension.class)
 class EquipmentServiceTest {
@@ -148,5 +152,167 @@ class EquipmentServiceTest {
 
     verify(equipmentRepository)
         .findByEquipmentCodeContainingIgnoreCaseOrNameContainingIgnoreCase("ポンプ", "ポンプ");
+  }
+
+  @Test
+  void updateShouldUpdateEquipmentAndPreserveInactiveStatus() {
+    Long equipmentId = 1L;
+
+    Equipment equipment = new Equipment();
+    equipment.setId(equipmentId);
+    equipment.setEquipmentCode("EQ-001");
+    equipment.setName("更新前の設備");
+    equipment.setActive(false);
+
+    EquipmentRequest request =
+        new EquipmentRequest(
+            "EQ-002",
+            "更新後の設備",
+            "新メーカー",
+            "MODEL-002",
+            "第二工場",
+            LocalDate.of(2026, 11, 20),
+            60,
+            "更新後の説明",
+            false);
+
+    when(equipmentRepository.findById(equipmentId)).thenReturn(Optional.of(equipment));
+
+    when(equipmentRepository.existsByEquipmentCodeAndIdNot("EQ-002", equipmentId))
+        .thenReturn(false);
+
+    when(equipmentRepository.save(any(Equipment.class)))
+        .thenAnswer(invocation -> invocation.getArgument(0));
+
+    EquipmentResponse response = equipmentService.update(equipmentId, request);
+
+    ArgumentCaptor<Equipment> captor = ArgumentCaptor.forClass(Equipment.class);
+    verify(equipmentRepository).save(captor.capture());
+
+    Equipment savedEquipment = captor.getValue();
+
+    assertEquals("EQ-002", savedEquipment.getEquipmentCode());
+    assertEquals("更新後の設備", savedEquipment.getName());
+    assertEquals("新メーカー", savedEquipment.getManufacturer());
+    assertEquals("MODEL-002", savedEquipment.getModel());
+    assertEquals("第二工場", savedEquipment.getLocation());
+    assertEquals(LocalDate.of(2026, 11, 20), savedEquipment.getInstalledDate());
+    assertEquals(60, savedEquipment.getInspectionCycleDays());
+    assertEquals("更新後の説明", savedEquipment.getDescription());
+    assertEquals(false, savedEquipment.getActive());
+
+    assertEquals(equipmentId, response.id());
+    assertEquals("EQ-002", response.equipmentCode());
+    assertEquals("更新後の設備", response.name());
+    assertEquals(false, response.active());
+
+    verify(equipmentRepository).findById(equipmentId);
+    verify(equipmentRepository).existsByEquipmentCodeAndIdNot("EQ-002", equipmentId);
+  }
+
+  @Test
+  void updateShouldAllowSameEquipmentCode() {
+    Long equipmentId = 1L;
+
+    Equipment equipment = new Equipment();
+    equipment.setId(equipmentId);
+    equipment.setEquipmentCode("EQ-001");
+    equipment.setName("更新前の設備");
+    equipment.setActive(true);
+
+    EquipmentRequest request =
+        new EquipmentRequest(
+            "EQ-001",
+            "更新後の設備",
+            "ABC",
+            "P-100",
+            "工場A",
+            LocalDate.of(2026, 8, 6),
+            30,
+            "設備名のみ変更",
+            true);
+
+    when(equipmentRepository.findById(equipmentId)).thenReturn(java.util.Optional.of(equipment));
+
+    when(equipmentRepository.save(any(Equipment.class)))
+        .thenAnswer(invocation -> invocation.getArgument(0));
+
+    EquipmentResponse response = equipmentService.update(equipmentId, request);
+
+    assertEquals("EQ-001", response.equipmentCode());
+    assertEquals("更新後の設備", response.name());
+
+    verify(equipmentRepository).existsByEquipmentCodeAndIdNot("EQ-001", equipmentId);
+
+    verify(equipmentRepository).save(any(Equipment.class));
+  }
+
+  @Test
+  void updateShouldThrowExceptionWhenEquipmentCodeAlreadyExists() {
+    Long equipmentId = 1L;
+
+    Equipment equipment = new Equipment();
+    equipment.setId(equipmentId);
+    equipment.setEquipmentCode("EQ-001");
+    equipment.setName("更新前の設備");
+
+    EquipmentRequest request =
+        new EquipmentRequest(
+            "EQ-002",
+            "更新後の設備",
+            "ABC",
+            "P-100",
+            "工場A",
+            LocalDate.of(2026, 8, 6),
+            30,
+            "設備コード重複テスト",
+            true);
+
+    when(equipmentRepository.findById(equipmentId)).thenReturn(Optional.of(equipment));
+
+    when(equipmentRepository.existsByEquipmentCodeAndIdNot("EQ-002", equipmentId)).thenReturn(true);
+
+    DuplicateResourceException exception =
+        assertThrows(
+            DuplicateResourceException.class, () -> equipmentService.update(equipmentId, request));
+
+    assertEquals("設備コードは既に登録されています: EQ-002", exception.getMessage());
+
+    verify(equipmentRepository).findById(equipmentId);
+
+    verify(equipmentRepository).existsByEquipmentCodeAndIdNot("EQ-002", equipmentId);
+
+    verify(equipmentRepository, never()).save(any(Equipment.class));
+  }
+
+  @Test
+  void updateShouldThrowNotFoundWhenEquipmentDoesNotExist() {
+    Long equipmentId = 999L;
+
+    EquipmentRequest request =
+        new EquipmentRequest(
+            "EQ-999",
+            "存在しない設備",
+            "ABC",
+            "P-100",
+            "工場A",
+            LocalDate.of(2026, 8, 6),
+            30,
+            "存在しない設備の更新テスト",
+            true);
+
+    when(equipmentRepository.findById(equipmentId)).thenReturn(Optional.empty());
+
+    ResponseStatusException exception =
+        assertThrows(
+            ResponseStatusException.class, () -> equipmentService.update(equipmentId, request));
+
+    assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+
+    verify(equipmentRepository).findById(equipmentId);
+
+    verify(equipmentRepository, never()).existsByEquipmentCodeAndIdNot(any(), any());
+
+    verify(equipmentRepository, never()).save(any(Equipment.class));
   }
 }
