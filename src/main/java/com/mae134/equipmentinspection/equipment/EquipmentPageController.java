@@ -94,10 +94,6 @@ public class EquipmentPageController {
     // 入力エラー時の再表示で、編集画面のURL生成に使用する
     model.addAttribute("equipmentId", equipmentId);
 
-    if (bindingResult.hasErrors()) {
-      return "equipment-edit";
-    }
-
     EquipmentResponse existingEquipment =
         equipmentService
             .findById(equipmentId)
@@ -105,6 +101,10 @@ public class EquipmentPageController {
                 () ->
                     new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Equipment not found: " + equipmentId));
+
+    if (bindingResult.hasErrors()) {
+      return "equipment-edit";
+    }
 
     try {
       // 編集フォームにないactiveは、既存の値を引き継ぐ
