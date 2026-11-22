@@ -339,4 +339,101 @@ class SecurityConfigTest {
       equipmentRepository.deleteById(equipment.id());
     }
   }
+
+  @Test
+  void adminCannotUpdateEquipmentWithoutRequiredFields() throws Exception {
+    EquipmentResponse equipment = createTestEquipment();
+
+    try {
+      mockMvc
+          .perform(
+              post("/equipment/{equipmentId}/edit", equipment.id())
+                  .with(user("admin@example.com").roles("ADMIN"))
+                  .with(csrf())
+                  .param("equipmentCode", "")
+                  .param("name", ""))
+          .andExpect(status().isOk())
+          .andExpect(view().name("equipment-edit"))
+          .andExpect(model().attributeHasFieldErrors("equipmentForm", "equipmentCode", "name"));
+
+      EquipmentResponse unchanged = equipmentService.findById(equipment.id()).orElseThrow();
+
+      assertEquals(equipment.equipmentCode(), unchanged.equipmentCode());
+      assertEquals(equipment.name(), unchanged.name());
+
+    } finally {
+      equipmentRepository.deleteById(equipment.id());
+    }
+  }
+
+  @Test
+  void adminCannotUpdateEquipmentWithInvalidFields() throws Exception {
+    EquipmentResponse equipment = createTestEquipment();
+
+    try {
+      mockMvc
+          .perform(
+              post("/equipment/{equipmentId}/edit", equipment.id())
+                  .with(user("admin@example.com").roles("ADMIN"))
+                  .with(csrf())
+                  .param("equipmentCode", "A".repeat(21))
+                  .param("name", "B".repeat(101))
+                  .param("manufacturer", "C".repeat(101))
+                  .param("model", "D".repeat(101))
+                  .param("location", "E".repeat(101))
+                  .param("installedDate", "invalid-date")
+                  .param("inspectionCycleDays", "0")
+                  .param("description", "F".repeat(501)))
+          .andExpect(status().isOk())
+          .andExpect(view().name("equipment-edit"))
+          .andExpect(
+              model()
+                  .attributeHasFieldErrors(
+                      "equipmentForm",
+                      "equipmentCode",
+                      "name",
+                      "manufacturer",
+                      "model",
+                      "location",
+                      "installedDate",
+                      "inspectionCycleDays",
+                      "description"));
+
+      EquipmentResponse unchanged = equipmentService.findById(equipment.id()).orElseThrow();
+
+      assertEquals(equipment.equipmentCode(), unchanged.equipmentCode());
+      assertEquals(equipment.name(), unchanged.name());
+
+    } finally {
+      equipmentRepository.deleteById(equipment.id());
+    }
+  }
+
+  @Test
+  void adminCannotChangeActiveThroughEditForm() throws Exception {
+    EquipmentResponse equipment = createTestEquipment();
+
+    try {
+      assertEquals(true, equipment.active());
+
+      mockMvc
+          .perform(
+              post("/equipment/{equipmentId}/edit", equipment.id())
+                  .with(user("admin@example.com").roles("ADMIN"))
+                  .with(csrf())
+                  .param("equipmentCode", equipment.equipmentCode())
+                  .param("name", "更新後の設備名")
+                  .param("active", "false"))
+          .andExpect(status().is3xxRedirection())
+          .andExpect(redirectedUrl("/equipment/" + equipment.id()));
+
+      EquipmentResponse updated = equipmentService.findById(equipment.id()).orElseThrow();
+
+      assertEquals("更新後の設備名", updated.name());
+      assertEquals(true, updated.active());
+
+    } finally {
+      equipmentRepository.deleteById(equipment.id());
+    }
+  }
 }
