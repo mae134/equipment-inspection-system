@@ -19,7 +19,12 @@
         <h1>設備詳細</h1>
         <p class="page-description">登録済み設備の詳細情報を確認できます。</p>
       </header>
-
+      <p
+        class="success-message"
+        role="status"
+        th:if="${successMessage}"
+        th:text="${successMessage}"
+      ></p>
       <section class="detail-card" aria-label="設備情報">
         <h2>基本情報</h2>
 
@@ -98,12 +103,13 @@
 
         <nav class="detail-actions" aria-label="設備操作">
           <!-- #154 実装後に編集画面へのリンクを有効化 -->
-          <span
-            class="button button-disabled"
+          <a
+            class="button button-secondary"
             sec:authorize="hasRole('ADMIN')"
-            title="設備編集画面は今後実装予定です"
-            >編集（準備中）</span
+            th:href="@{/equipment/{id}/edit(id=${equipment.id})}"
           >
+            設備を編集
+          </a>
 
           <a
             class="button button-secondary"

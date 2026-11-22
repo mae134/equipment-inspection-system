@@ -1,5 +1,6 @@
 package com.mae134.equipmentinspection.security;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestBuilders.logout;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
@@ -247,5 +248,192 @@ class SecurityConfigTest {
         .perform(get("/equipment/1/inspection-items"))
         .andExpect(status().is3xxRedirection())
         .andExpect(redirectedUrl("/login"));
+  }
+
+  @Test
+  void adminCanAccessEquipmentEditPage() throws Exception {
+    EquipmentResponse equipment = createTestEquipment();
+
+    try {
+      mockMvc
+          .perform(
+              get("/equipment/{equipmentId}/edit", equipment.id())
+                  .with(user("admin@example.com").roles("ADMIN")))
+          .andExpect(status().isOk())
+          .andExpect(view().name("equipment-edit"))
+          .andExpect(model().attributeExists("equipmentForm", "equipmentId"));
+    } finally {
+      equipmentRepository.deleteById(equipment.id());
+    }
+  }
+
+  @Test
+  void inspectorCannotAccessEquipmentEditPage() throws Exception {
+    mockMvc
+        .perform(
+            get("/equipment/999999999/edit").with(user("inspector@example.com").roles("INSPECTOR")))
+        .andExpect(status().isForbidden());
+  }
+
+  @Test
+  void unauthenticatedUserCannotAccessEquipmentEditPage() throws Exception {
+    mockMvc
+        .perform(get("/equipment/999999999/edit"))
+        .andExpect(status().is3xxRedirection())
+        .andExpect(redirectedUrl("/login"));
+  }
+
+  @Test
+  void inspectorCannotUpdateEquipment() throws Exception {
+    mockMvc
+        .perform(
+            post("/equipment/999999999/edit")
+                .with(user("inspector@example.com").roles("INSPECTOR"))
+                .with(csrf())
+                .param("equipmentCode", "EQ-002")
+                .param("name", "更新後の設備"))
+        .andExpect(status().isForbidden());
+  }
+
+  @Test
+  void adminCannotUpdateEquipmentWithoutCsrf() throws Exception {
+    mockMvc
+        .perform(
+            post("/equipment/999999999/edit")
+                .with(user("admin@example.com").roles("ADMIN"))
+                .param("equipmentCode", "EQ-002")
+                .param("name", "更新後の設備"))
+        .andExpect(status().isForbidden());
+  }
+
+  @Test
+  void adminCanUpdateEquipment() throws Exception {
+    EquipmentResponse equipment = createTestEquipment();
+
+    try {
+      mockMvc
+          .perform(
+              post("/equipment/{equipmentId}/edit", equipment.id())
+                  .with(user("admin@example.com").roles("ADMIN"))
+                  .with(csrf())
+                  .param("equipmentCode", equipment.equipmentCode())
+                  .param("name", "更新後の設備名")
+                  .param("manufacturer", "更新後メーカー")
+                  .param("model", "MODEL-154")
+                  .param("location", "工場B")
+                  .param("installedDate", "2026-11-16")
+                  .param("inspectionCycleDays", "60")
+                  .param("description", "設備編集テスト"))
+          .andExpect(status().is3xxRedirection())
+          .andExpect(redirectedUrl("/equipment/" + equipment.id()));
+
+      EquipmentResponse updated = equipmentService.findById(equipment.id()).orElseThrow();
+
+      assertEquals("更新後の設備名", updated.name());
+      assertEquals("更新後メーカー", updated.manufacturer());
+      assertEquals("工場B", updated.location());
+      assertEquals(60, updated.inspectionCycleDays());
+      assertEquals("設備編集テスト", updated.description());
+
+    } finally {
+      equipmentRepository.deleteById(equipment.id());
+    }
+  }
+
+  @Test
+  void adminCannotUpdateEquipmentWithoutRequiredFields() throws Exception {
+    EquipmentResponse equipment = createTestEquipment();
+
+    try {
+      mockMvc
+          .perform(
+              post("/equipment/{equipmentId}/edit", equipment.id())
+                  .with(user("admin@example.com").roles("ADMIN"))
+                  .with(csrf())
+                  .param("equipmentCode", "")
+                  .param("name", ""))
+          .andExpect(status().isOk())
+          .andExpect(view().name("equipment-edit"))
+          .andExpect(model().attributeHasFieldErrors("equipmentForm", "equipmentCode", "name"));
+
+      EquipmentResponse unchanged = equipmentService.findById(equipment.id()).orElseThrow();
+
+      assertEquals(equipment.equipmentCode(), unchanged.equipmentCode());
+      assertEquals(equipment.name(), unchanged.name());
+
+    } finally {
+      equipmentRepository.deleteById(equipment.id());
+    }
+  }
+
+  @Test
+  void adminCannotUpdateEquipmentWithInvalidFields() throws Exception {
+    EquipmentResponse equipment = createTestEquipment();
+
+    try {
+      mockMvc
+          .perform(
+              post("/equipment/{equipmentId}/edit", equipment.id())
+                  .with(user("admin@example.com").roles("ADMIN"))
+                  .with(csrf())
+                  .param("equipmentCode", "A".repeat(21))
+                  .param("name", "B".repeat(101))
+                  .param("manufacturer", "C".repeat(101))
+                  .param("model", "D".repeat(101))
+                  .param("location", "E".repeat(101))
+                  .param("installedDate", "invalid-date")
+                  .param("inspectionCycleDays", "0")
+                  .param("description", "F".repeat(501)))
+          .andExpect(status().isOk())
+          .andExpect(view().name("equipment-edit"))
+          .andExpect(
+              model()
+                  .attributeHasFieldErrors(
+                      "equipmentForm",
+                      "equipmentCode",
+                      "name",
+                      "manufacturer",
+                      "model",
+                      "location",
+                      "installedDate",
+                      "inspectionCycleDays",
+                      "description"));
+
+      EquipmentResponse unchanged = equipmentService.findById(equipment.id()).orElseThrow();
+
+      assertEquals(equipment.equipmentCode(), unchanged.equipmentCode());
+      assertEquals(equipment.name(), unchanged.name());
+
+    } finally {
+      equipmentRepository.deleteById(equipment.id());
+    }
+  }
+
+  @Test
+  void adminCannotChangeActiveThroughEditForm() throws Exception {
+    EquipmentResponse equipment = createTestEquipment();
+
+    try {
+      assertEquals(true, equipment.active());
+
+      mockMvc
+          .perform(
+              post("/equipment/{equipmentId}/edit", equipment.id())
+                  .with(user("admin@example.com").roles("ADMIN"))
+                  .with(csrf())
+                  .param("equipmentCode", equipment.equipmentCode())
+                  .param("name", "更新後の設備名")
+                  .param("active", "false"))
+          .andExpect(status().is3xxRedirection())
+          .andExpect(redirectedUrl("/equipment/" + equipment.id()));
+
+      EquipmentResponse updated = equipmentService.findById(equipment.id()).orElseThrow();
+
+      assertEquals("更新後の設備名", updated.name());
+      assertEquals(true, updated.active());
+
+    } finally {
+      equipmentRepository.deleteById(equipment.id());
+    }
   }
 }
