@@ -1,33 +1,77 @@
+/* ダッシュボード全体 */
 body {
-  max-width: 1000px;
+  max-width: var(--content-width-wide);
   margin: 40px auto;
-  padding: 0 24px;
-  font-family: sans-serif;
-  color: #333;
+  padding: 0 var(--space-6);
+  background: var(--color-background);
+  color: var(--color-text);
 }
 
-form {
-  margin-bottom: 24px;
+/* 設備一覧の見出し */
+h2 {
+  margin: var(--space-8) 0 var(--space-5);
+  font-size: 24px;
 }
 
-table {
+/* 設備検索 */
+.equipment-search {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
+}
+
+/* 検索項目の配置 */
+.equipment-search .ui-form-field {
+  width: 340px;
+  max-width: 100%;
+  margin-bottom: 0;
+}
+
+/* 検索入力欄 */
+.equipment-search .ui-input {
   width: 100%;
-  border-collapse: collapse;
-  margin-top: 16px;
 }
 
-th,
-td {
-  padding: 12px 16px;
-  border: 1px solid #ddd;
-  text-align: left;
+/* 検索ボタン */
+.equipment-search .ui-button {
+  min-height: var(--button-min-height);
 }
 
-th {
-  background: #f5f5f5;
+/* 設備登録 */
+.equipment-actions {
+  margin: var(--space-6) 0;
 }
 
+/* 設備一覧 */
+.equipment-table {
+  margin-top: var(--space-4);
+}
+
+/* 操作リンク */
 .action-links {
   display: flex;
-  gap: 12px;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+/* スマートフォン対応 */
+@media (max-width: 600px) {
+  body {
+    margin: var(--space-5) auto;
+    padding: 0 var(--space-4);
+  }
+
+  .equipment-search {
+    align-items: stretch;
+  }
+
+  .equipment-search .ui-form-field {
+    width: 100%;
+  }
+
+  .equipment-search .ui-button {
+    width: 100%;
+  }
 }
