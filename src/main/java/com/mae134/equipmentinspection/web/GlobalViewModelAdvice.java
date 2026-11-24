@@ -9,12 +9,13 @@ import java.security.Principal;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ModelAttribute;
 
-@ControllerAdvice(assignableTypes = {
-    DashboardController.class,
-    EquipmentPageController.class,
-    EquipmentInspectionItemPageController.class,
-    InspectionRecordController.class
-})
+@ControllerAdvice(
+    assignableTypes = {
+      DashboardController.class,
+      EquipmentPageController.class,
+      EquipmentInspectionItemPageController.class,
+      InspectionRecordController.class
+    })
 public class GlobalViewModelAdvice {
 
   private final UserRepository userRepository;
@@ -29,9 +30,6 @@ public class GlobalViewModelAdvice {
       return null;
     }
 
-    return userRepository
-        .findByEmail(principal.getName())
-        .map(user -> user.getName())
-        .orElse(null);
+    return userRepository.findByEmail(principal.getName()).map(user -> user.getName()).orElse(null);
   }
 }
