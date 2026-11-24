@@ -2,78 +2,150 @@
 <html lang="ja" xmlns:th="http://www.thymeleaf.org">
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>点検履歴詳細</title>
+    <link rel="stylesheet" th:href="@{/css/tokens.css}" />
+    <link rel="stylesheet" th:href="@{/css/common.css}" />
     <link rel="stylesheet" th:href="@{/css/inspection-history.css}" />
   </head>
   <body>
-    <h1>点検履歴詳細</h1>
+    <header th:replace="~{fragments/header :: header}"></header>
 
-    <section>
-      <p>点検ID: <span th:text="${detail.inspectionId}"></span></p>
-      <p>設備コード: <span th:text="${detail.equipmentCode}"></span></p>
-      <p>設備名: <span th:text="${detail.equipmentName}"></span></p>
-      <p>
-        点検日時:
-        <span
-          th:text="${#temporals.format(detail.inspectionAt, 'yyyy-MM-dd HH:mm')}"
-        ></span>
-      </p>
-      <p>点検者: <span th:text="${detail.inspectorName}"></span></p>
-      <p>
-        総合コメント:
-        <span th:text="${detail.comment != null ? detail.comment : '-'}"></span>
-      </p>
-    </section>
+    <main class="ui-page">
+      <header class="ui-page-header">
+        <a
+          class="ui-back-link"
+          th:href="@{/equipment/{equipmentId}/inspections(equipmentId=${detail.equipmentId})}"
+        >
+          ← 点検履歴一覧へ戻る
+        </a>
 
-    <h2>点検結果</h2>
+        <h1>点検履歴詳細</h1>
 
-    <table>
-      <thead>
-        <tr>
-          <th>項目名</th>
-          <th>測定値・回答</th>
-          <th>判定</th>
-          <th>コメント</th>
-        </tr>
-      </thead>
+        <p class="ui-page-description">
+          点検記録と各点検項目の判定結果を確認できます。
+        </p>
+      </header>
 
-      <tbody>
-        <tr th:each="result : ${detail.results}">
-          <td th:text="${result.itemName}"></td>
+      <!-- 点検情報 -->
+      <section class="ui-card" aria-labelledby="inspection-info-title">
+        <h2 id="inspection-info-title">点検情報</h2>
 
-          <td>
-            <span th:if="${result.result.name() == 'NOT_APPLICABLE'}"> - </span>
+        <dl class="detail-grid">
+          <div class="detail-group">
+            <dt>点検ID</dt>
+            <dd th:text="${detail.inspectionId}"></dd>
+          </div>
 
-            <span
-              th:if="${result.result.name() != 'NOT_APPLICABLE' and result.type.name() == 'NUMERIC'}"
-            >
-              <span th:text="${result.numericValue}"></span>
-              <span
-                th:if="${result.unit != null}"
-                th:text="${result.unit}"
-              ></span>
-            </span>
+          <div class="detail-group">
+            <dt>設備コード</dt>
+            <dd th:text="${detail.equipmentCode}"></dd>
+          </div>
 
-            <span
-              th:if="${result.result.name() != 'NOT_APPLICABLE' and result.type.name() == 'BOOLEAN'}"
-              th:text="${result.booleanValue ? 'はい' : 'いいえ'}"
-            >
-            </span>
-          </td>
+          <div class="detail-group">
+            <dt>設備名</dt>
+            <dd th:text="${detail.equipmentName}"></dd>
+          </div>
 
-          <td th:text="${result.result}"></td>
+          <div class="detail-group">
+            <dt>点検日時</dt>
+            <dd
+              th:text="${#temporals.format(detail.inspectionAt, 'yyyy-MM-dd HH:mm')}"
+            ></dd>
+          </div>
 
-          <td th:text="${result.comment != null ? result.comment : '-'}"></td>
-        </tr>
-      </tbody>
-    </table>
+          <div class="detail-group">
+            <dt>点検者</dt>
+            <dd th:text="${detail.inspectorName}"></dd>
+          </div>
 
-    <p>
-      <a
-        th:href="@{/equipment/{equipmentId}/inspections(equipmentId=${detail.equipmentId})}"
-      >
-        点検履歴一覧へ戻る
-      </a>
-    </p>
+          <div class="detail-group detail-group-full">
+            <dt>総合コメント</dt>
+            <dd
+              class="history-comment"
+              th:text="${detail.comment != null ? detail.comment : '-'}"
+            ></dd>
+          </div>
+        </dl>
+      </section>
+
+      <!-- 点検結果 -->
+      <section class="ui-card" aria-labelledby="inspection-results-title">
+        <h2 id="inspection-results-title">点検結果</h2>
+
+        <div class="ui-table-wrapper">
+          <table class="ui-table result-table">
+            <thead>
+              <tr>
+                <th scope="col">項目名</th>
+                <th scope="col">測定値・回答</th>
+                <th scope="col">判定</th>
+                <th scope="col">コメント</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              <tr th:each="result : ${detail.results}">
+                <td class="result-item-name" th:text="${result.itemName}"></td>
+
+                <!-- 測定値・回答 -->
+                <td>
+                  <span th:if="${result.result.name() == 'NOT_APPLICABLE'}">
+                    -
+                  </span>
+
+                  <span
+                    th:if="${result.result.name() != 'NOT_APPLICABLE' and result.type.name() == 'NUMERIC'}"
+                  >
+                    <span th:text="${result.numericValue}"></span>
+                    <span
+                      th:if="${result.unit != null}"
+                      th:text="${result.unit}"
+                    ></span>
+                  </span>
+
+                  <span
+                    th:if="${result.result.name() != 'NOT_APPLICABLE' and result.type.name() == 'BOOLEAN'}"
+                    th:text="${result.booleanValue ? 'はい' : 'いいえ'}"
+                  ></span>
+                </td>
+
+                <!-- 判定 -->
+                <td>
+                  <th:block th:switch="${result.result.name()}">
+                    <span th:case="'OK'" class="ui-status ui-status-success">
+                      正常
+                    </span>
+
+                    <span th:case="'NG'" class="ui-status ui-status-error">
+                      異常
+                    </span>
+
+                    <span
+                      th:case="'NOT_APPLICABLE'"
+                      class="ui-status ui-status-inactive"
+                    >
+                      対象外
+                    </span>
+
+                    <span
+                      th:case="*"
+                      class="ui-status"
+                      th:text="${result.result}"
+                    ></span>
+                  </th:block>
+                </td>
+
+                <!-- コメント -->
+                <td
+                  class="history-comment"
+                  th:text="${result.comment != null ? result.comment : '-'}"
+                ></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
   </body>
 </html>

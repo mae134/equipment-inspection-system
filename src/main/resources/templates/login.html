@@ -2,35 +2,76 @@
 <html lang="ja" xmlns:th="http://www.thymeleaf.org">
   <head>
     <meta charset="UTF-8" />
-    <title>ログイン</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ログイン | 設備点検管理システム</title>
+    <link rel="stylesheet" th:href="@{/css/tokens.css}" />
+    <link rel="stylesheet" th:href="@{/css/common.css}" />
+    <link rel="stylesheet" th:href="@{/css/login.css}" />
   </head>
   <body>
-    <h1>ログイン</h1>
+    <main class="login-page">
+      <section class="ui-card login-card" aria-labelledby="login-title">
+        <!-- ログイン画面の見出し -->
+        <header class="login-header">
+          <p class="login-brand">設備点検管理システム</p>
+          <h1 id="login-title">ログイン</h1>
+          <p class="login-description">アカウントにログインしてください。</p>
+        </header>
 
-    <div th:if="${param.error}">
-      <p>メールアドレスまたはパスワードが正しくありません。</p>
-    </div>
+        <!-- 認証エラー -->
+        <div
+          class="ui-alert ui-alert-error"
+          th:if="${param.error}"
+          role="alert"
+        >
+          メールアドレスまたはパスワードが正しくありません。
+        </div>
 
-    <div th:if="${param.logout}">
-      <p>ログアウトしました。</p>
-    </div>
+        <!-- ログアウト完了通知 -->
+        <div
+          class="ui-alert ui-alert-success"
+          th:if="${param.logout}"
+          role="status"
+        >
+          ログアウトしました。
+        </div>
 
-    <form th:action="@{/login}" method="post">
-      <div>
-        <label>
-          メールアドレス
-          <input type="email" name="username" required />
-        </label>
-      </div>
+        <!-- ログインフォーム -->
+        <form th:action="@{/login}" method="post">
+          <div class="ui-form-field">
+            <label class="ui-form-label" for="username"> メールアドレス </label>
+            <input
+              class="ui-input"
+              id="username"
+              type="email"
+              name="username"
+              autocomplete="username"
+              placeholder="example@example.com"
+              required
+            />
+          </div>
 
-      <div>
-        <label>
-          パスワード
-          <input type="password" name="password" required />
-        </label>
-      </div>
+          <div class="ui-form-field">
+            <label class="ui-form-label" for="password"> パスワード </label>
+            <input
+              class="ui-input"
+              id="password"
+              type="password"
+              name="password"
+              autocomplete="current-password"
+              placeholder="パスワードを入力"
+              required
+            />
+          </div>
 
-      <button type="submit">ログイン</button>
-    </form>
+          <button
+            class="ui-button ui-button-primary login-submit"
+            type="submit"
+          >
+            ログイン
+          </button>
+        </form>
+      </section>
+    </main>
   </body>
 </html>
