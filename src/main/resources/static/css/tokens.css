@@ -1,9 +1,7 @@
 :root {
   /* 背景色 */
   --color-background: #f8fafc;
-
-  /* 入力欄の境界線 */
-  --color-input-border: #cbd5e1;
+  --color-surface: #ffffff;
 
   /* ブランドカラー */
   --color-primary: #2563a6;
@@ -11,17 +9,34 @@
   --color-primary-hover: #1e3a5f;
   --color-primary-light: #eaf2fb;
 
-  /* 文字色・表面色・境界線 */
+  /* 文字色 */
   --color-text: #243447;
   --color-text-muted: #64748b;
-  --color-surface: #ffffff;
+  --color-text-placeholder: #94a3b8;
+
+  /* 境界線 */
   --color-border: #e2e8f0;
   --color-border-light: #edf2f7;
-  --color-row-hover: #f5f9ff;
+  --color-input-border: #cbd5e1;
 
-  /* 通知・エラー表示色 */
+  /* ホバー・フォーカス */
+  --color-row-hover: #f5f9ff;
+  --color-secondary-hover: #f1f5f9;
+  --color-focus: #2563a6;
+
+  /* 成功表示 */
   --color-success: #15803d;
+  --color-success-bg: #dcfce7;
+  --color-success-border: #86efac;
+
+  /* エラー表示 */
   --color-error: #b91c1c;
+  --color-error-bg: #fef2f2;
+  --color-error-border: #fca5a5;
+
+  /* 無効状態 */
+  --color-disabled-bg: #f1f5f9;
+  --color-disabled-text: #94a3b8;
 
   /* 角丸 */
   --radius-sm: 6px;
@@ -46,4 +61,11 @@
   /* 影 */
   --shadow-sm: 0 3px 12px rgba(30, 58, 95, 0.06);
   --shadow-md: 0 4px 14px rgba(30, 58, 95, 0.12);
+
+  /* レイアウト */
+  --content-width: 1000px;
+  --content-width-wide: 1200px;
+
+  /* ボタン */
+  --button-min-height: 42px;
 }

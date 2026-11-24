@@ -22,7 +22,7 @@ body {
 }
 
 .site-header-inner {
-  max-width: 1200px;
+  max-width: var(--content-width-wide);
   margin: 0 auto;
   display: flex;
   justify-content: space-between;
@@ -93,7 +93,10 @@ body {
 
 /* 共通ボタン */
 .ui-button {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--button-min-height);
   padding: 10px 18px;
   background: var(--color-primary);
   color: var(--color-surface);
@@ -115,7 +118,7 @@ body {
 .ui-button:focus-visible,
 .ui-input:focus-visible,
 .ui-action-link:focus-visible {
-  outline: 2px solid var(--color-primary);
+  outline: 2px solid var(--color-focus);
   outline-offset: 3px;
 }
 
@@ -140,6 +143,12 @@ body {
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
   overflow: hidden;
+}
+
+/* 共通テーブルの横スクロール */
+.ui-table-wrapper {
+  max-width: 100%;
+  overflow-x: auto;
 }
 
 .ui-table th,
@@ -205,4 +214,261 @@ body {
   .ui-table td {
     padding: 10px;
   }
+}
+
+/* 共通ページレイアウト */
+.ui-page {
+  max-width: var(--content-width);
+  margin: 48px auto;
+  padding: 0;
+}
+
+/* 共通ページ見出し */
+.ui-page-header {
+  margin-bottom: 28px;
+}
+
+.ui-page-header h1 {
+  margin: 0 0 var(--space-2);
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.ui-page-description {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+/* 共通戻るリンク */
+.ui-back-link {
+  display: inline-block;
+  margin-bottom: var(--space-5);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  text-decoration: none;
+}
+
+.ui-back-link:hover {
+  color: var(--color-primary);
+  text-decoration: underline;
+}
+
+.ui-back-link:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 3px;
+}
+
+/* 共通カード */
+.ui-card {
+  padding: 36px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+/* スマートフォン対応 */
+@media (max-width: 640px) {
+  .ui-page {
+    margin: var(--space-6) auto;
+    padding: 0 var(--space-4);
+  }
+
+  .ui-page-header h1 {
+    font-size: 26px;
+  }
+
+  .ui-card {
+    padding: var(--space-5);
+  }
+}
+
+/* 主ボタン */
+.ui-button-primary {
+  background: var(--color-primary);
+  color: var(--color-surface);
+}
+
+.ui-button-primary:hover {
+  background: var(--color-primary-hover);
+  color: var(--color-surface);
+}
+
+/* 副ボタン */
+.ui-button-secondary {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-color: var(--color-input-border);
+}
+
+.ui-button-secondary:hover {
+  background: var(--color-secondary-hover);
+  color: var(--color-text);
+}
+
+/* 無効ボタン */
+.ui-button:disabled,
+.ui-button[aria-disabled="true"],
+.ui-button.ui-button-disabled {
+  background: var(--color-disabled-bg);
+  color: var(--color-disabled-text);
+  border-color: var(--color-border);
+  cursor: not-allowed;
+}
+
+/* 無効ボタンのホバー */
+.ui-button:disabled:hover,
+.ui-button[aria-disabled="true"]:hover,
+.ui-button.ui-button-disabled:hover {
+  background: var(--color-disabled-bg);
+  color: var(--color-disabled-text);
+}
+
+/* 共通ボタンのスマートフォン対応 */
+@media (max-width: 640px) {
+  .ui-button {
+    max-width: 100%;
+  }
+}
+
+/* 共通フォーム項目 */
+.ui-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-bottom: var(--space-5);
+}
+
+/* 共通フォームラベル */
+.ui-form-label {
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+/* 必須項目 */
+.ui-required {
+  color: var(--color-error);
+  font-weight: 700;
+}
+
+/* 入力欄の共通設定 */
+.ui-form-field .ui-input {
+  width: 100%;
+  min-height: var(--button-min-height);
+}
+
+.ui-input::placeholder {
+  color: var(--color-text-placeholder);
+}
+
+.ui-input:disabled {
+  background: var(--color-disabled-bg);
+  color: var(--color-disabled-text);
+  cursor: not-allowed;
+}
+
+/* 入力エラー状態 */
+.ui-input-error,
+.ui-input[aria-invalid="true"] {
+  border-color: var(--color-error);
+}
+
+.ui-input-error:focus-visible,
+.ui-input[aria-invalid="true"]:focus-visible {
+  outline-color: var(--color-error);
+}
+
+/* 入力補足説明 */
+.ui-field-hint {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+}
+
+/* 入力エラーメッセージ */
+.ui-field-error {
+  color: var(--color-error);
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+}
+
+/* フォーム操作ボタン */
+.ui-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-top: var(--space-6);
+}
+
+/* スマートフォン対応 */
+@media (max-width: 640px) {
+  .ui-form-actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .ui-form-actions .ui-button {
+    width: 100%;
+    box-sizing: border-box;
+  }
+}
+
+/* 共通通知 */
+.ui-alert {
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  line-height: 1.6;
+}
+
+/* 成功通知 */
+.ui-alert-success {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+  border-color: var(--color-success-border);
+}
+
+/* エラー通知 */
+.ui-alert-error {
+  background: var(--color-error-bg);
+  color: var(--color-error);
+  border-color: var(--color-error-border);
+}
+
+/* 共通状態バッジ */
+.ui-status {
+  display: inline-block;
+  padding: var(--space-1) var(--space-3);
+  border-radius: 9999px;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+/* 有効状態 */
+.ui-status-active {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+/* 無効状態 */
+.ui-status-inactive {
+  background: var(--color-disabled-bg);
+  color: var(--color-text-muted);
+}
+
+/* 共通空データ表示 */
+.ui-empty-state {
+  padding: var(--space-8) var(--space-4);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  line-height: 1.6;
+  text-align: center;
 }
