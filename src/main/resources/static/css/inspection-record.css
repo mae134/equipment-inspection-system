@@ -1,47 +1,201 @@
-body {
-  font-family: sans-serif;
-  margin: 0;
-  background-color: #f5f5f5;
-  color: #333;
-}
-
-.container {
-  max-width: 1200px;
-  margin: 40px auto;
-  padding: 24px;
-  background-color: #fff;
-}
-
-h1 {
-  margin-top: 0;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 20px;
-}
-
-th,
-td {
-  border: 1px solid #ccc;
-  padding: 10px;
-  text-align: left;
-}
-
-th {
-  background-color: #f0f0f0;
-}
-
-input,
-select,
-textarea {
+/* 点検記録画面の基本設定 */
+* {
   box-sizing: border-box;
-  padding: 6px;
 }
 
-button {
-  margin-top: 20px;
-  padding: 8px 24px;
+body {
+  max-width: var(--content-width-wide);
+  margin: 40px auto;
+  padding: 0 var(--space-6);
+  background: var(--color-background);
+  color: var(--color-text);
+  line-height: 1.6;
+}
+
+/* 点検記録画面は広いコンテンツ領域を使用 */
+.inspection-page {
+  max-width: var(--content-width-wide);
+}
+
+/* カード間の余白 */
+.inspection-page .ui-card {
+  margin-bottom: var(--space-6);
+}
+
+/* カードの見出し */
+.ui-card h2 {
+  margin: 0 0 var(--space-6);
+  font-size: var(--font-size-lg);
+}
+
+/* 対象設備の情報 */
+.equipment-summary {
+  margin: 0;
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+/* 点検者・点検日時のレイアウト */
+.inspection-info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-6);
+}
+
+/* 点検者名 */
+.inspector-name {
+  display: flex;
+  align-items: center;
+  min-height: var(--button-min-height);
+  margin: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+/* フォーム項目の基本設定 */
+.ui-form-field {
+  min-width: 0;
+}
+
+/* 全体備考 */
+.inspection-comment {
+  margin-bottom: 0;
+}
+
+.inspection-comment textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+/* 点検項目一覧 */
+.inspection-table {
+  min-width: 940px;
+  font-size: var(--font-size-sm);
+}
+
+.inspection-table th {
+  white-space: nowrap;
+}
+
+.inspection-table td {
+  vertical-align: middle;
+  overflow-wrap: anywhere;
+}
+
+/* 点検項目名 */
+.inspection-item-name {
+  min-width: 120px;
+  font-weight: 600;
+}
+
+/* 正常条件 */
+.inspection-condition {
+  min-width: 140px;
+}
+
+/* 数値入力欄と単位の配置 */
+.numeric-input-group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.numeric-input {
+  width: 110px;
+  min-height: var(--button-min-height);
+}
+
+/* 測定値の単位 */
+.inspection-unit {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  white-space: nowrap;
+}
+
+/* 真偽値入力欄 */
+.boolean-input-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+/* ラジオボタンとラベルの配置 */
+.inspection-choice {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  white-space: nowrap;
   cursor: pointer;
+}
+
+/* ラジオボタン・チェックボックス */
+.inspection-choice input,
+.not-applicable-input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+
+/* キーボード操作時のフォーカス表示 */
+.inspection-choice input:focus-visible,
+.not-applicable-input:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 3px;
+}
+
+/* 対象外チェックボックスの配置 */
+.inspection-table .not-applicable-cell {
+  text-align: center;
+}
+
+/* 点検項目ごとの備考 */
+.item-comment-input {
+  width: 100%;
+  min-width: 150px;
+  min-height: var(--button-min-height);
+}
+
+/* フィールドエラーメッセージ */
+.ui-field-error {
+  margin: 0;
+}
+
+.inspection-table .ui-field-error {
+  margin-top: var(--space-2);
+}
+
+/* 登録成功・グローバルエラーの表示 */
+.ui-alert {
+  margin: 0 0 var(--space-6);
+}
+
+.ui-alert p {
+  margin: 0;
+}
+
+.ui-alert ul {
+  margin: var(--space-3) 0 0;
+  padding-left: var(--space-6);
+}
+
+/* フォーム操作ボタンの区切り */
+.ui-form-actions {
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--color-border);
+}
+
+/* スマートフォン対応 */
+@media (max-width: 640px) {
+  .inspection-info-grid {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .inspector-name {
+    min-height: auto;
+  }
 }
