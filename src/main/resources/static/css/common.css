@@ -452,16 +452,23 @@ body {
   white-space: nowrap;
 }
 
-/* 有効状態 */
-.ui-status-active {
+/* 有効・正常・成功ステータス */
+.ui-status-active,
+.ui-status-success {
   background: var(--color-success-bg);
   color: var(--color-success);
 }
 
-/* 無効状態 */
+/* 無効・対象外ステータス */
 .ui-status-inactive {
   background: var(--color-disabled-bg);
   color: var(--color-text-muted);
+}
+
+/* 異常・エラーステータス */
+.ui-status-error {
+  background: var(--color-error-bg);
+  color: var(--color-error);
 }
 
 /* 共通空データ表示 */

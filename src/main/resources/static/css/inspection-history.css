@@ -1,45 +1,124 @@
+/* 点検履歴一覧・詳細画面の基本設定 */
+* {
+  box-sizing: border-box;
+}
+
 body {
-  max-width: 1000px;
+  max-width: var(--content-width-wide);
   margin: 40px auto;
-  padding: 0 24px;
-  font-family: sans-serif;
-  color: #333;
+  padding: 0 var(--space-6);
+  background: var(--color-background);
+  color: var(--color-text);
+  line-height: 1.6;
 }
 
-h1 {
-  margin-bottom: 24px;
+/* カード間の余白 */
+.ui-page > .ui-card {
+  margin-bottom: var(--space-6);
 }
 
-h2 {
-  margin-top: 32px;
+/* カードの見出し */
+.ui-card h2 {
+  margin: 0 0 var(--space-6);
+  font-size: var(--font-size-lg);
 }
 
-section {
-  margin-bottom: 24px;
+/* 対象設備の情報 */
+.equipment-summary {
+  margin: 0;
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  overflow-wrap: anywhere;
 }
 
-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 16px;
+/* 設備コードと設備名の区切り */
+.equipment-summary-separator {
+  margin: 0 var(--space-1);
+  color: var(--color-text-muted);
+  font-weight: 400;
 }
 
-th,
-td {
-  padding: 12px 16px;
-  border: 1px solid #ddd;
-  text-align: left;
+/* 点検履歴・点検結果テーブル */
+.history-table,
+.result-table {
+  min-width: 640px;
+  font-size: var(--font-size-sm);
 }
 
-th {
-  background: #f5f5f5;
+.history-table th,
+.result-table th {
+  white-space: nowrap;
 }
 
-tr:nth-child(even) {
-  background: #fafafa;
+.history-table td,
+.result-table td {
+  vertical-align: middle;
+  overflow-wrap: anywhere;
 }
 
-a {
-  display: inline-block;
-  margin-top: 16px;
+/* 点検日時 */
+.history-datetime {
+  white-space: nowrap;
+}
+
+/* 履歴詳細へのリンク */
+.history-table .ui-action-link {
+  white-space: nowrap;
+}
+
+/* 点検情報のレイアウト */
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-6);
+  margin: 0;
+}
+
+/* 点検情報の各項目 */
+.detail-group {
+  min-width: 0;
+}
+
+/* 横幅全体を使用する項目 */
+.detail-group-full {
+  grid-column: 1 / -1;
+}
+
+/* 点検情報の項目名 */
+.detail-group dt {
+  margin-bottom: var(--space-2);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+/* 点検情報の値 */
+.detail-group dd {
+  margin: 0;
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+
+/* 点検結果の項目名 */
+.result-item-name {
+  font-weight: 600;
+}
+
+/* コメントの改行・長文表示 */
+.history-comment {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* 履歴が存在しない場合の表示 */
+.ui-empty-state {
+  margin: 0;
+}
+
+/* スマートフォン対応 */
+@media (max-width: 640px) {
+  .detail-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-5);
+  }
 }

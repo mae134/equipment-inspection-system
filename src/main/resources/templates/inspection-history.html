@@ -2,53 +2,86 @@
 <html lang="ja" xmlns:th="http://www.thymeleaf.org">
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>点検履歴一覧</title>
+    <link rel="stylesheet" th:href="@{/css/tokens.css}" />
+    <link rel="stylesheet" th:href="@{/css/common.css}" />
     <link rel="stylesheet" th:href="@{/css/inspection-history.css}" />
   </head>
   <body>
-    <h1>点検履歴一覧</h1>
+    <header th:replace="~{fragments/header :: header}"></header>
 
-    <section>
-      <p>
-        設備コード:
-        <span th:text="${equipment.equipmentCode}"></span>
-      </p>
-      <p>
-        設備名:
-        <span th:text="${equipment.name}"></span>
-      </p>
-    </section>
+    <main class="ui-page">
+      <header class="ui-page-header">
+        <a class="ui-back-link" th:href="@{/dashboard}">
+          ← ダッシュボードへ戻る
+        </a>
 
-    <p th:if="${#lists.isEmpty(inspectionHistory)}">点検履歴はありません。</p>
+        <h1>点検履歴一覧</h1>
 
-    <table th:unless="${#lists.isEmpty(inspectionHistory)}">
-      <thead>
-        <tr>
-          <th>点検日時</th>
-          <th>点検者</th>
-          <th>総合コメント</th>
-          <th>操作</th>
-        </tr>
-      </thead>
+        <p class="ui-page-description">設備の過去の点検記録を確認できます。</p>
+      </header>
 
-      <tbody>
-        <tr th:each="history : ${inspectionHistory}">
-          <td
-            th:text="${#temporals.format(history.inspectionAt, 'yyyy-MM-dd HH:mm')}"
-          ></td>
-          <td th:text="${history.inspectorName}"></td>
-          <td th:text="${history.comment != null ? history.comment : '-'}"></td>
-          <td>
-            <a th:href="@{/inspections/{id}(id=${history.inspectionId})}">
-              詳細
-            </a>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+      <!-- 対象設備 -->
+      <section class="ui-card" aria-labelledby="equipment-summary-title">
+        <h2 id="equipment-summary-title">対象設備</h2>
 
-    <p>
-      <a th:href="@{/dashboard}">ダッシュボードへ戻る</a>
-    </p>
+        <p class="equipment-summary">
+          <span th:text="${equipment.equipmentCode}"></span>
+          <span class="equipment-summary-separator">｜</span>
+          <span th:text="${equipment.name}"></span>
+        </p>
+      </section>
+
+      <!-- 点検履歴一覧 -->
+      <section class="ui-card" aria-labelledby="inspection-history-title">
+        <h2 id="inspection-history-title">点検履歴</h2>
+
+        <p class="ui-empty-state" th:if="${#lists.isEmpty(inspectionHistory)}">
+          点検履歴はありません。
+        </p>
+
+        <div
+          class="ui-table-wrapper"
+          th:unless="${#lists.isEmpty(inspectionHistory)}"
+        >
+          <table class="ui-table history-table">
+            <thead>
+              <tr>
+                <th scope="col">点検日時</th>
+                <th scope="col">点検者</th>
+                <th scope="col">総合コメント</th>
+                <th scope="col">操作</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              <tr th:each="history : ${inspectionHistory}">
+                <td
+                  class="history-datetime"
+                  th:text="${#temporals.format(history.inspectionAt, 'yyyy-MM-dd HH:mm')}"
+                ></td>
+
+                <td th:text="${history.inspectorName}"></td>
+
+                <td
+                  class="history-comment"
+                  th:text="${history.comment != null ? history.comment : '-'}"
+                ></td>
+
+                <td>
+                  <a
+                    class="ui-action-link"
+                    th:href="@{/inspections/{id}(id=${history.inspectionId})}"
+                  >
+                    詳細
+                  </a>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
   </body>
 </html>
