@@ -8,25 +8,33 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>設備詳細</title>
+    <link rel="stylesheet" th:href="@{/css/tokens.css}" />
+    <link rel="stylesheet" th:href="@{/css/common.css}" />
     <link rel="stylesheet" th:href="@{/css/equipment-detail.css}" />
   </head>
   <body>
-    <main class="page-container">
-      <header class="page-header">
-        <a class="back-link" th:href="@{/dashboard}">
+    <header th:replace="~{fragments/header :: header}"></header>
+
+    <main class="ui-page">
+      <header class="ui-page-header">
+        <a class="ui-back-link" th:href="@{/dashboard}">
           ← ダッシュボードに戻る
         </a>
         <h1>設備詳細</h1>
-        <p class="page-description">登録済み設備の詳細情報を確認できます。</p>
+        <p class="ui-page-description">
+          登録済み設備の詳細情報を確認できます。
+        </p>
       </header>
+
       <p
-        class="success-message"
+        class="ui-alert ui-alert-success"
         role="status"
         th:if="${successMessage}"
         th:text="${successMessage}"
       ></p>
-      <section class="detail-card" aria-label="設備情報">
-        <h2>基本情報</h2>
+
+      <section class="ui-card" aria-labelledby="equipment-info-title">
+        <h2 id="equipment-info-title">基本情報</h2>
 
         <dl class="detail-grid">
           <div class="detail-group">
@@ -102,9 +110,8 @@
         </dl>
 
         <nav class="detail-actions" aria-label="設備操作">
-          <!-- #154 実装後に編集画面へのリンクを有効化 -->
           <a
-            class="button button-secondary"
+            class="ui-button ui-button-secondary"
             sec:authorize="hasRole('ADMIN')"
             th:href="@{/equipment/{id}/edit(id=${equipment.id})}"
           >
@@ -112,7 +119,7 @@
           </a>
 
           <a
-            class="button button-secondary"
+            class="ui-button ui-button-secondary"
             sec:authorize="hasRole('ADMIN')"
             th:href="@{/equipment/{id}/inspection-items(id=${equipment.id})}"
           >
@@ -120,19 +127,23 @@
           </a>
 
           <a
-            class="button button-primary"
+            class="ui-button ui-button-primary"
             sec:authorize="hasRole('INSPECTOR')"
             th:href="@{/equipment/{id}/inspections/new(id=${equipment.id})}"
-            >点検実施</a
           >
+            点検実施
+          </a>
 
           <a
-            class="button button-secondary"
+            class="ui-button ui-button-secondary"
             th:href="@{/equipment/{id}/inspections(id=${equipment.id})}"
-            >点検履歴</a
           >
+            点検履歴
+          </a>
 
-          <a class="button button-secondary" th:href="@{/dashboard}"> 戻る </a>
+          <a class="ui-button ui-button-secondary" th:href="@{/dashboard}">
+            戻る
+          </a>
         </nav>
       </section>
     </main>

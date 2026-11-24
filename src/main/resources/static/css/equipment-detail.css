@@ -1,69 +1,28 @@
+/* 設備詳細画面の基本設定 */
 * {
   box-sizing: border-box;
 }
 
 body {
-  margin: 0;
-  background: #f8fafc;
-  color: #1e293b;
-  font-family:
-    -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans JP", sans-serif;
+  max-width: var(--content-width-wide);
+  margin: 40px auto;
+  padding: 0 var(--space-6);
+  background: var(--color-background);
+  color: var(--color-text);
   line-height: 1.6;
 }
 
-.page-container {
-  max-width: 1000px;
-  margin: 48px auto;
-  padding: 0 24px;
+/* 設備情報の見出し */
+.ui-card h2 {
+  margin: 0 0 var(--space-6);
+  font-size: var(--font-size-lg);
 }
 
-.page-header {
-  margin-bottom: 28px;
-}
-
-.back-link {
-  display: inline-block;
-  margin-bottom: 20px;
-  color: #475569;
-  font-size: 14px;
-  text-decoration: none;
-}
-
-.back-link:hover {
-  color: #2563eb;
-  text-decoration: underline;
-}
-
-h1 {
-  margin: 0 0 8px;
-  font-size: 32px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-}
-
-.page-description {
-  margin: 0;
-  color: #64748b;
-  font-size: 14px;
-}
-
-.detail-card {
-  padding: 36px;
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  box-shadow: 0 4px 18px rgb(15 23 42 / 4%);
-}
-
-h2 {
-  margin: 0 0 24px;
-  font-size: 20px;
-}
-
+/* 設備情報のレイアウト */
 .detail-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 24px;
+  gap: var(--space-6);
   margin: 0;
 }
 
@@ -75,103 +34,54 @@ h2 {
   grid-column: 1 / -1;
 }
 
-dt {
-  margin-bottom: 8px;
-  color: #64748b;
-  font-size: 14px;
+/* 設備情報の項目名 */
+.detail-group dt {
+  margin-bottom: var(--space-2);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
   font-weight: 600;
 }
 
-dd {
+/* 設備情報の値 */
+.detail-group dd {
   margin: 0;
   overflow-wrap: anywhere;
   font-size: 15px;
 }
 
-.description {
+/* 備考の改行を維持 */
+.detail-group .description {
   white-space: pre-wrap;
 }
 
+/* 設備操作ボタンの配置 */
 .detail-actions {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
-  gap: 12px;
-  margin-top: 32px;
-  padding-top: 24px;
-  border-top: 1px solid #e2e8f0;
+  gap: var(--space-3);
+  margin-top: var(--space-8);
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--color-border);
 }
 
-.button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 42px;
-  padding: 10px 20px;
-  border: 1px solid transparent;
-  border-radius: 7px;
-  font: inherit;
-  font-size: 14px;
-  font-weight: 600;
-  text-decoration: none;
+/* 設備操作ボタンの文字サイズ */
+.detail-actions .ui-button {
+  font-size: var(--font-size-sm);
 }
 
-.button-primary {
-  background: #2563eb;
-  color: #fff;
-}
-
-.button-primary:hover {
-  background: #1d4ed8;
-}
-
-.button-secondary {
-  border-color: #cbd5e1;
-  background: #fff;
-  color: #475569;
-}
-
-.button-secondary:hover {
-  background: #f1f5f9;
-}
-
-.button-disabled {
-  border-color: #e2e8f0;
-  background: #f1f5f9;
-  color: #94a3b8;
-  cursor: not-allowed;
-}
-
-.button:focus-visible,
-.back-link:focus-visible {
-  outline: 3px solid #93c5fd;
-  outline-offset: 2px;
-}
-
+/* スマートフォン対応 */
 @media (max-width: 640px) {
-  .page-container {
-    margin: 24px auto;
-    padding: 0 16px;
-  }
-
-  h1 {
-    font-size: 26px;
-  }
-
-  .detail-card {
-    padding: 20px;
-  }
-
   .detail-grid {
     grid-template-columns: 1fr;
-    gap: 20px;
+    gap: var(--space-5);
   }
 
   .detail-actions {
     flex-direction: column;
   }
 
-  .button {
+  .detail-actions .ui-button {
     width: 100%;
   }
 }
