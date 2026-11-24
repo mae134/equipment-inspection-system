@@ -18,6 +18,9 @@ public class SecurityConfig {
             auth ->
                 auth.requestMatchers("/login", "/h2-console/**")
                     .permitAll()
+                    .requestMatchers(
+                        HttpMethod.GET, "/css/tokens.css", "/css/common.css", "/css/login.css")
+                    .permitAll()
                     .requestMatchers("/api/**")
                     .hasRole("ADMIN")
                     .requestMatchers(HttpMethod.GET, "/equipment/new")

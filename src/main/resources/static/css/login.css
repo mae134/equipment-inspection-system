@@ -1,0 +1,79 @@
+/* ログイン画面の基本設定 */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--color-background);
+  color: var(--color-text);
+  line-height: 1.6;
+}
+
+/* ログインカードの中央配置 */
+.login-page {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: var(--space-6);
+}
+
+.login-card {
+  width: 100%;
+  max-width: 440px;
+}
+
+/* ログイン画面の見出し */
+.login-header {
+  margin-bottom: var(--space-6);
+  padding-bottom: var(--space-6);
+  border-bottom: 1px solid var(--color-border);
+  text-align: center;
+}
+
+.login-brand {
+  margin: 0 0 var(--space-4);
+  color: var(--color-primary-dark);
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+}
+
+.login-header h1 {
+  margin: 0 0 var(--space-2);
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.login-description {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+/* 認証エラー・ログアウト通知 */
+.login-card .ui-alert {
+  margin-bottom: var(--space-5);
+}
+
+/* ログインボタン */
+.login-submit {
+  width: 100%;
+  margin-top: var(--space-2);
+}
+
+/* スマートフォン対応 */
+@media (max-width: 640px) {
+  .login-page {
+    padding: var(--space-4);
+  }
+
+  .login-brand {
+    font-size: 18px;
+  }
+
+  .login-header h1 {
+    font-size: 24px;
+  }
+}
