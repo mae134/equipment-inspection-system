@@ -23,18 +23,24 @@ class UserRegistrationStartupTest {
   private static final String DATABASE = "jdbc:h2:mem:registration-startup";
   private static final String DATASOURCE = "--spring.datasource.url=" + DATABASE;
 
-  @Test
-  void registrationStartsWithoutWebServerOrDatabaseInitialization() throws Exception {
+  @ParameterizedTest
+  @ValueSource(strings = {"", "dev"})
+  void registrationStartsWithoutWebServerOrDatabaseInitialization(String profile) throws Exception {
     try (var connection = DriverManager.getConnection(DATABASE, "sa", "");
         var context =
             EquipmentInspectionSystemApplication.registrationApplication()
                 .run(
                     DATASOURCE,
+                    "--spring.profiles.active=" + profile,
                     "--spring.sql.init.schema-locations=classpath:missing-test-schema.sql")) {
       assertThat(context).isNotInstanceOf(WebServerApplicationContext.class);
       assertThat(context.getBeansOfType(SecurityConfig.class)).isEmpty();
       assertThat(context.getBean(PasswordEncoder.class)).isNotNull();
       assertThat(context.getBean(UserRegistrationService.class)).isNotNull();
+      if ("dev".equals(profile)) {
+        assertThat(context.getEnvironment().getProperty("spring.sql.init.data-locations"))
+            .isEqualTo("classpath:data.sql,classpath:data-dev.sql");
+      }
       try (var tables = connection.getMetaData().getTables(null, "PUBLIC", "%", null)) {
         assertThat(tables.next()).isFalse();
       }
