@@ -38,6 +38,17 @@ resource "aws_iam_policy" "ecs_parameter_store_read" {
         Resource = "arn:aws:ssm:ap-northeast-1:339741260090:parameter/equipment-inspection/prod/db/*"
       },
       {
+        Sid    = "ReadEquipmentInspectionUserRegistrationParameters"
+        Effect = "Allow"
+
+        Action = [
+          "ssm:GetParameter",
+          "ssm:GetParameters"
+        ]
+
+        Resource = "arn:aws:ssm:ap-northeast-1:339741260090:parameter/equipment-inspection/prod/user-registration/*"
+      },
+      {
         Sid    = "DecryptParameterStoreSecureString"
         Effect = "Allow"
 
