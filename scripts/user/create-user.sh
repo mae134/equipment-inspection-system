@@ -12,7 +12,8 @@ Usage: create-user.sh --local | --aws | --help
            DB_PASSWORD, and optionally DB_USERNAME (defaults to equipment_user).
            Use a direct local database listener. A forwarded port can lead to a remote database.
            The launcher uses packaged Spring configuration and these DB variables only.
-  --aws    AWS registration is unavailable in Phase 3.
+  --aws    Register a user using a standalone AWS Fargate task.
+           Export USER_REGISTRATION_IMAGE_DIGEST=sha256:<64 lowercase hex characters>.
   --help   Show this help.
 USAGE
 }
@@ -24,7 +25,10 @@ fail() {
 
 case "$#:${1:-}" in
   1:--help) usage; exit 0 ;;
-  1:--aws) fail 'AWS registration is not implemented in Phase 3.' ;;
+  1:--aws)
+    script_dir="$(CDPATH='' cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+    exec "$script_dir/create-user-aws.sh"
+    ;;
   1:--local) ;;
   *) usage >&2; exit 2 ;;
 esac

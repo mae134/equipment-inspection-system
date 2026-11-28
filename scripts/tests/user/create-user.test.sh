@@ -31,7 +31,14 @@ assert_run 2 'Usage:' "$launcher" --unknown
 assert_run 2 'Usage:' "$launcher" --local --aws
 assert_run 2 'Usage:' "$launcher" --local extra
 assert_run 2 'Usage:' "$launcher" --help extra
-assert_run 1 'not implemented in Phase 3' env "PATH=$test_dir/bin" "$launcher" --aws
+cat >"${launcher%/*}/create-user-aws.sh" <<'MOCK'
+#!/bin/bash
+[[ $# == 0 ]] || exit 99
+printf 'Mock AWS launcher invoked\n'
+exit 4
+MOCK
+chmod +x "${launcher%/*}/create-user-aws.sh"
+assert_run 4 'Mock AWS launcher invoked' env "PATH=$test_dir/bin" "$launcher" --aws
 assert_run 1 'Java is required' env "PATH=$test_dir/bin" "$launcher" --local
 
 cat > "$test_dir/bin/java" <<'MOCK'
